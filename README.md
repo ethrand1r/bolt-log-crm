@@ -6,7 +6,8 @@
 2. Sol menüden **SQL Editor > New query** açın ve şu dosyaları **sırayla**, her birini ayrı sorgu olarak yapıştırıp **Run** deyin:
    1. `supabase/schema.sql`: temel tablolar
    2. `supabase/002_update.sql`: sektörler, çoklu telefon/e-posta, EORI, karayolu, ölçüler, fatura durumları
-   3. `supabase/demo_data.sql`: (isteğe bağlı) 10 örnek firma + 20 örnek fırsat.
+   3. `supabase/003_update.sql`: teklif numarası (SEA/AIR/ROAD), LDM, hava aktarma noktaları, İngilizce ülke adları
+   4. `supabase/demo_data.sql`: (isteğe bağlı) 10 örnek firma + 20 örnek fırsat.
       Silmek için: `delete from companies where 'demo' = any(tags);`
 3. **Authentication > Users > Add user > Create new user** ile kendi e-posta ve şifrenizi oluşturun ("Auto confirm user" işaretli olsun).
 4. **Authentication > Sign In / Providers** altında **"Allow new users to sign up"** seçeneğini **kapatın**.
@@ -49,5 +50,5 @@ Liman, havalimanı ve ülke/şehir listeleri `public/` altında statik dosyalard
 |---|---|---|
 | `public/ref/seaports.json` (17.596 liman) | UN/LOCODE, `code-list.csv` (github.com/datasets/un-locode) | `node scripts/build-seaports.mjs code-list.csv` |
 | `public/ref/airports.json` (4.030 havalimanı) | OurAirports, `airports.csv` (ourairports.com/data) | `node scripts/build-airports.mjs airports.csv` |
-| `public/geo/` (250 ülke ve şehirleri) | `country-state-city` paketi | `node scripts/build-geo.mjs` |
+| `public/geo/` (250 ülke ve şehirleri, İngilizce adlar) | `country-state-city` paketi | `node scripts/build-geo.mjs` |
 | Havayolu ve armatör listesi | `src/data/carriers.ts` | Elle güncellenir. Ekrandan eklenenler `carriers` tablosuna kaydedilir. |

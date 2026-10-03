@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { getChargeTemplates } from '../lib/refdata'
 import type { CargoFields, ChargeLine, ChargeTemplate, ContainerLine, DimLine } from '../lib/types'
 import { CARGO_TYPES, CHARGE_UNITS, CONTAINER_TYPES, CURRENCIES, DG_CLASSES, ROAD_LOADS, VEHICLE_TYPES, modeGroup } from '../lib/constants'
-import { cbmFromDims, chargeableFor, fmtNum, numOrNull, totalsByCurrency } from '../lib/format'
+import { cbmFromDims, chargeableFor, fmtNum, ldmFromDims, numOrNull, totalsByCurrency } from '../lib/format'
 import { Field, Select } from './ui'
 
 /** Konteyner satırları. withNumbers=true ise konteyner no / mühür girilir (sevkiyat). */
@@ -54,21 +54,34 @@ export function CargoEditor({ value, mode, onChange }: {
   const dimsCbm = cbmFromDims(dims)
   const hasDims = dimsCbm !== null
   const group = modeGroup(mode)
+  const dimsLdm = group === 'road' ? ldmFromDims(dims, value.stackable) : null
   const cwLabel = mode === 'air' ? 'Ücretlendirilen ağırlık (CW, kg)' : mode === 'road' ? 'Ücretlendirilen ağırlık (kg)' : mode === 'sea_lcl' ? 'W/M (revenue ton)' : null
   const computed = chargeableFor(mode, value.gross_weight ?? null, value.volume_cbm ?? null)
   const [manualCw, setManualCw] = useState(
     () => value.chargeable_weight != null && computed != null && Number(value.chargeable_weight) !== computed,
   )
 
-  // Ölçülerden CBM ve kap adedi
+  // Ölçülerden CBM, kap adedi ve (karayolunda) LDM
   useEffect(() => {
     if (!hasDims) return
     const pk = dims.reduce((s, d) => s + (Number(d.qty) || 0), 0)
     const patch: Partial<CargoFields> = {}
     if (dimsCbm !== value.volume_cbm) patch.volume_cbm = dimsCbm
     if (pk && pk !== value.packages) patch.packages = pk
+    if (group === 'road' && dimsLdm !== (value.ldm ?? null)) patch.ldm = dimsLdm
     if (Object.keys(patch).length) onChange(patch)
-  }, [dimsCbm, hasDims, dims])
+  }, [dimsCbm, dimsLdm, hasDims, dims, group])
+
+  // "Ölçü satırı ekle" sonrası yeni satırın adet kutusuna odaklan
+  const dimTable = useRef<HTMLTableElement>(null)
+  const [focusNewRow, setFocusNewRow] = useState(false)
+  useEffect(() => {
+    if (!focusNewRow) return
+    const qty = dimTable.current?.querySelector<HTMLInputElement>('tbody tr:last-child input')
+    qty?.focus()
+    qty?.select()
+    setFocusNewRow(false)
+  }, [focusNewRow, dims.length])
 
   // CW otomatik
   useEffect(() => {
@@ -114,7 +127,7 @@ export function CargoEditor({ value, mode, onChange }: {
         <span className="label">Ölçüler (cm)</span>
         {dims.length > 0 && (
           <div className="mb-2 overflow-x-auto">
-            <table className="table-base max-w-xl">
+            <table ref={dimTable} className="table-base max-w-xl">
               <thead><tr><th className="w-20">Adet</th><th>Boy</th><th>En</th><th>Yükseklik</th><th className="text-right!">CBM</th><th className="w-10"></th></tr></thead>
               <tbody>
                 {dims.map((d, i) => (
@@ -130,7 +143,7 @@ export function CargoEditor({ value, mode, onChange }: {
             </table>
           </div>
         )}
-        <button type="button" className="btn-secondary" onClick={() => onChange({ dimensions: [...dims, { qty: 1, l: 0, w: 0, h: 0 }] })}>
+        <button type="button" className="btn-secondary" onClick={() => { onChange({ dimensions: [...dims, { qty: 1, l: 0, w: 0, h: 0 }] }); setFocusNewRow(true) }}>
           <Plus className="h-4 w-4" /> Ölçü satırı ekle
         </button>
       </div>
@@ -159,6 +172,14 @@ export function CargoEditor({ value, mode, onChange }: {
             </div>
             <span className="mt-0.5 block text-[11px] text-slate-400">
               {manualCw ? `Elle girildi · hesaplanan: ${computed ?? '-'}` : mode === 'air' ? '1 CBM = 167 kg' : mode === 'road' ? '1 CBM = 333 kg' : '1 CBM = 1 ton'}
+            </span>
+          </Field>
+        )}
+        {group === 'road' && (
+          <Field label={hasDims ? 'Yükleme metresi (LDM) - ölçülerden' : 'Yükleme metresi (LDM)'}>
+            <input className="input" type="number" step="any" disabled={hasDims} value={value.ldm ?? ''} onChange={(e) => onChange({ ldm: numOrNull(e.target.value) })} />
+            <span className="mt-0.5 block text-[11px] text-slate-400">
+              Dorse 2,40 m geniş{value.stackable === false ? '' : ', istifte 2,70 m yükseklik'}
             </span>
           </Field>
         )}

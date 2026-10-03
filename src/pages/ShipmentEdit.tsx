@@ -1,19 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Ban, Check, CheckCircle2, FileText, Paperclip, Plane, Save, Ship, Trash2, Truck, Upload } from 'lucide-react'
+import { ArrowLeft, Ban, Check, CheckCircle2, FileText, Paperclip, Plane, Plus, Save, Ship, Trash2, Truck, Upload, X } from 'lucide-react'
 import { supabase, q } from '../lib/supabase'
 import type { CargoFields, ChargeLine, Shipment, ShipmentDocument } from '../lib/types'
 import { DIRECTIONS, INCOTERMS, MODES, SHIPMENT_FLOW, SHIPMENT_STATUSES, label, modeGroup } from '../lib/constants'
-import { clean, fmtDate, fmtDateTime } from '../lib/format'
-import { Badge, ErrorBox, Field, PageHeader, Section, Select, Spinner } from '../components/ui'
+import { clean, fmtDate, fmtDateTime, todayISO } from '../lib/format'
+import { Badge, ErrorBox, Field, Modal, PageHeader, Section, Select, Spinner } from '../components/ui'
 import { CargoEditor, ChargeEditor, ContainerEditor } from '../components/inputs'
 import { CarrierPicker, CompanyCombo, PortPicker, RoadPlacePicker } from '../components/pickers'
 
 const FIELDS: (keyof Shipment)[] = [
   'quote_id', 'company_id', 'status', 'mode', 'direction', 'incoterm', 'shipper_id', 'consignee_id', 'notify_id',
   'agent_id', 'carrier', 'booking_no', 'mbl_no', 'hbl_no', 'mawb_no', 'hawb_no', 'vessel', 'voyage', 'flight_no',
-  'pol', 'pod', 'pickup_address', 'delivery_address', 'etd', 'eta', 'atd', 'ata', 'commodity', 'packages',
-  'gross_weight', 'volume_cbm', 'chargeable_weight', 'dimensions', 'cargo_type', 'dg_un_no', 'dg_class', 'stackable',
+  'pol', 'pod', 'transits', 'pickup_address', 'delivery_address', 'etd', 'eta', 'atd', 'ata', 'commodity', 'packages',
+  'gross_weight', 'volume_cbm', 'chargeable_weight', 'ldm', 'dimensions', 'cargo_type', 'dg_un_no', 'dg_class', 'stackable',
   'road_load', 'vehicle_type', 'containers', 'cmr_no', 'truck_plate', 'trailer_plate', 'driver_name', 'driver_phone',
   'border_gate', 'notes',
 ]
@@ -36,6 +36,7 @@ export default function ShipmentEdit() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  const [cancelReason, setCancelReason] = useState<string | null>(null)
 
   const set = <K extends keyof Shipment>(k: K, v: Shipment[K] | null) => { setF((p) => ({ ...p, [k]: v })); setSaved(false) }
   const patch = (p: Partial<Shipment> | Partial<CargoFields>) => { setF((x) => ({ ...x, ...p })); setSaved(false) }
@@ -45,7 +46,7 @@ export default function ShipmentEdit() {
     ;(async () => {
       try {
         if (isNew) {
-          setF({ status: 'booking', mode: (newMode ?? 'sea_fcl') as Shipment['mode'], direction: 'export', containers: [], dimensions: [], cargo_type: 'GEN', stackable: true })
+          setF({ status: 'booking', mode: (newMode ?? 'sea_fcl') as Shipment['mode'], direction: 'export', containers: [], transits: [], dimensions: [], cargo_type: 'GEN', stackable: true })
           setCharges([])
           setDocs([])
           return
@@ -79,6 +80,9 @@ export default function ShipmentEdit() {
     try {
       const payload: Record<string, unknown> = {}
       for (const k of FIELDS) payload[k] = cur[k] ?? null
+      payload.transits = (cur.transits ?? []).filter(Boolean)
+      // Havada tek tarih (uçuş tarihi) girilir; yaklaşan varış listesi için ETA'ya da yazılır
+      if (modeGroup(cur.mode) === 'air') payload.eta = payload.etd
       const cleaned = clean(payload)
       const s = isNew
         ? await q<Shipment>(supabase.from('shipments').insert(cleaned).select().single())
@@ -101,9 +105,20 @@ export default function ShipmentEdit() {
   }
 
   function setStatus(status: string) {
-    if (status === 'cancelled' && !confirm('Dosya iptal edilsin mi?')) return
+    if (status === 'cancelled') { setCancelReason(''); return }
     set('status', status)
     if (!isNew) save({ status })
+  }
+
+  /** İptal sebebi notlara tarihli satır olarak eklenir */
+  function confirmCancel() {
+    const reason = cancelReason?.trim()
+    if (!reason) return
+    const line = `İptal sebebi (${fmtDate(todayISO())}): ${reason}`
+    const notes = f!.notes?.trim() ? `${f!.notes.trim()}\n\n${line}` : line
+    setCancelReason(null)
+    patch({ status: 'cancelled', notes })
+    if (!isNew) save({ status: 'cancelled', notes })
   }
 
   async function upload(files: FileList | null) {
@@ -164,6 +179,8 @@ export default function ShipmentEdit() {
   const dateField = (k: 'etd' | 'eta' | 'atd' | 'ata', lbl: string) => (
     <Field label={lbl}><input className="input" type="date" value={f[k] ?? ''} onChange={(e) => set(k, e.target.value)} /></Field>
   )
+  const transits = f.transits ?? []
+  const setTransits = (v: string[]) => set('transits', v)
 
   return (
     <>
@@ -300,15 +317,43 @@ export default function ShipmentEdit() {
                     ? <RoadPlacePicker value={f.pod ?? null} onChange={(v) => set('pod', v)} />
                     : <PortPicker kind={group} value={f.pod ?? null} onChange={(v) => set('pod', v)} />}
                 </Field>
+                {group === 'air' && (
+                  <div className="md:col-span-2">
+                    <span className="label">Aktarma havalimanları (opsiyonel)</span>
+                    <div className="space-y-2">
+                      {transits.map((t, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <span className="w-5 shrink-0 text-right text-xs text-slate-400">{i + 1}.</span>
+                          <div className="min-w-0 flex-1">
+                            <PortPicker kind="air" value={t || null} placeholder="Aktarma havalimanı…"
+                              onChange={(v) => setTransits(transits.map((x, j) => (j === i ? v ?? '' : x)))} />
+                          </div>
+                          <button type="button" className="btn-ghost p-1.5 text-red-500" title="Kaldır"
+                            onClick={() => setTransits(transits.filter((_, j) => j !== i))}>
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                      <button type="button" className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline"
+                        onClick={() => setTransits([...transits, ''])}>
+                        <Plus className="h-3.5 w-3.5" /> Aktarma noktası ekle
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {text('pickup_address', 'Yükleme adresi')}
                 {text('delivery_address', 'Teslim adresi')}
               </div>
 
               <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 lg:grid-cols-4">
-                {dateField('etd', group === 'road' ? 'Planlanan yükleme' : 'ETD (tahmini kalkış)')}
-                {dateField('eta', group === 'road' ? 'Tahmini varış' : 'ETA (tahmini varış)')}
-                {dateField('atd', group === 'road' ? 'Gerçek yükleme' : 'ATD (gerçek kalkış)')}
-                {dateField('ata', group === 'road' ? 'Gerçek varış' : 'ATA (gerçek varış)')}
+                {group === 'air' ? dateField('etd', 'Flight date (uçuş tarihi)') : (
+                  <>
+                    {dateField('etd', group === 'road' ? 'Planlanan yükleme' : 'ETD (tahmini kalkış)')}
+                    {dateField('eta', group === 'road' ? 'Tahmini varış' : 'ETA (tahmini varış)')}
+                    {dateField('atd', group === 'road' ? 'Gerçek yükleme' : 'ATD (gerçek kalkış)')}
+                    {dateField('ata', group === 'road' ? 'Gerçek varış' : 'ATA (gerçek varış)')}
+                  </>
+                )}
               </div>
             </div>
           </Section>
@@ -365,6 +410,20 @@ export default function ShipmentEdit() {
           </Section>
         </div>
       </div>
+
+      <Modal open={cancelReason !== null} title={`${f.job_no ?? 'Dosya'} iptal edilsin mi?`} onClose={() => setCancelReason(null)}>
+        <form onSubmit={(e) => { e.preventDefault(); confirmCancel() }}>
+          <Field label="İptal sebebi *">
+            <textarea className="input" rows={3} required autoFocus value={cancelReason ?? ''}
+              placeholder="ör. Müşteri sevkiyatı erteledi" onChange={(e) => setCancelReason(e.target.value)} />
+          </Field>
+          <p className="mt-1 text-xs text-slate-400">Sebep, tarihiyle birlikte dosyanın notlarına eklenir.</p>
+          <div className="mt-4 flex justify-end gap-2">
+            <button type="button" className="btn-secondary" onClick={() => setCancelReason(null)}>Vazgeç</button>
+            <button className="btn-danger" disabled={busy || !cancelReason?.trim()}><Ban className="h-4 w-4" /> Dosyayı iptal et</button>
+          </div>
+        </form>
+      </Modal>
     </>
   )
 }

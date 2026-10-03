@@ -41,6 +41,18 @@ export default function Shipments() {
     return c
   }, [data])
 
+  // Seçili sekmedeki dosyaların filtre bazında sayısı: "Booking (3)"
+  const filterCounts = useMemo(() => {
+    const c: Record<string, number> = { active: 0, all: 0 }
+    ;(data ?? []).forEach((x) => {
+      if (modeGroup(x.mode) !== tab) return
+      c.all++
+      if (isOpen(x.status)) c.active++
+      c[x.status] = (c[x.status] ?? 0) + 1
+    })
+    return c
+  }, [data, tab])
+
   const rows = useMemo(() => {
     const s = search.toLocaleLowerCase('tr')
     return (data ?? []).filter((x) =>
@@ -82,7 +94,7 @@ export default function Shipments() {
         </div>
         <div className="flex flex-wrap gap-1">
           {FILTERS.map((t) => (
-            <button key={t.value} className={filter === t.value ? 'btn-primary' : 'btn-secondary'} onClick={() => setFilter(t.value)}>{t.label}</button>
+            <button key={t.value} className={filter === t.value ? 'btn-primary' : 'btn-secondary'} onClick={() => setFilter(t.value)}>{t.label} ({filterCounts[t.value] ?? 0})</button>
           ))}
         </div>
       </div>
@@ -96,7 +108,8 @@ export default function Shipments() {
                 {tab === 'sea' && <><th>BL</th><th>Ekipman</th></>}
                 {tab === 'air' && <><th>AWB</th><th>CW</th></>}
                 {tab === 'road' && <><th>Plaka</th><th>CMR</th></>}
-                <th>{tab === 'road' ? 'Yükleme' : 'ETD'}</th><th>{tab === 'road' ? 'Varış' : 'ETA'}</th><th>Durum</th>
+                {tab === 'air' ? <th>Flight date</th> : <><th>{tab === 'road' ? 'Yükleme' : 'ETD'}</th><th>{tab === 'road' ? 'Varış' : 'ETA'}</th></>}
+                <th>Durum</th>
               </tr>
             </thead>
             <tbody>
@@ -105,7 +118,7 @@ export default function Shipments() {
                   <td className="font-medium text-slate-900">{x.job_no}</td>
                   <td>{x.companies?.name}</td>
                   {tab === 'sea' && <td><Badge list={MODES} value={x.mode} /></td>}
-                  <td className="text-slate-600">{x.pol} → {x.pod}</td>
+                  <td className="text-slate-600">{[x.pol, ...(x.transits ?? []), x.pod].filter(Boolean).join(' → ')}</td>
                   {tab === 'sea' && (
                     <>
                       <td className="text-slate-600">{x.mbl_no ?? x.hbl_no ?? x.booking_no}</td>
@@ -119,7 +132,7 @@ export default function Shipments() {
                   {tab === 'air' && (
                     <>
                       <td className="text-slate-600">{x.mawb_no ?? x.hawb_no}</td>
-                      <td className="text-slate-600">{x.chargeable_weight ? `${fmtNum(x.chargeable_weight, 1)} kg` : ''}</td>
+                      <td className="text-slate-600">{x.chargeable_weight ? `${fmtNum(x.chargeable_weight, 0)} kg` : ''}</td>
                     </>
                   )}
                   {tab === 'road' && (
@@ -128,8 +141,12 @@ export default function Shipments() {
                       <td className="text-slate-600">{x.cmr_no}</td>
                     </>
                   )}
-                  <td>{fmtDate(x.atd ?? x.etd)}</td>
-                  <td>{fmtDate(x.ata ?? x.eta)}</td>
+                  {tab === 'air' ? <td>{fmtDate(x.etd)}</td> : (
+                    <>
+                      <td>{fmtDate(x.atd ?? x.etd)}</td>
+                      <td>{fmtDate(x.ata ?? x.eta)}</td>
+                    </>
+                  )}
                   <td><Badge list={SHIPMENT_STATUSES} value={x.status} /></td>
                 </tr>
               ))}

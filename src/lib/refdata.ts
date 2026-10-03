@@ -42,7 +42,8 @@ export function getCompanyOptions(): Promise<Pick<Company, 'id' | 'name' | 'type
 }
 
 // ------------------------------------------------------------ Ülke / şehir (public/geo)
-export interface Country { code: string; name: string; en: string }
+/** name: İngilizce ad (ekranda ve kayıtta), tr: Türkçe ad (sadece aramada) */
+export interface Country { code: string; name: string; tr: string }
 export const getCountries = () => cached('countries', () => fetchJson<Country[]>('/geo/countries.json'))
 export const getCities = (code: string) => cached(`cities:${code}`, () => fetchJson<string[]>(`/geo/cities/${code}.json`))
 

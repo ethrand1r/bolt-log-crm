@@ -3,6 +3,7 @@ export type Option = { value: string; label: string; color?: string }
 export const COMPANY_TYPES: Option[] = [
   { value: 'prospect', label: 'Potansiyel Müşteri', color: 'bg-amber-100 text-amber-800' },
   { value: 'customer', label: 'Müşteri', color: 'bg-emerald-100 text-emerald-800' },
+  { value: 'exporter_importer', label: 'İhracatçı / İthalatçı', color: 'bg-blue-100 text-blue-800' },
   { value: 'agent', label: 'Acente', color: 'bg-violet-100 text-violet-800' },
   { value: 'carrier', label: 'Armatör', color: 'bg-sky-100 text-sky-800' },
   { value: 'airline', label: 'Havayolu', color: 'bg-cyan-100 text-cyan-800' },

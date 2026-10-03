@@ -45,16 +45,33 @@ export function cbmFromDims(dims: DimLine[] | null | undefined): number | null {
 }
 
 /**
+ * Karayolu yükleme metresi (LDM): taban alanı / 2,40 m dorse genişliği.
+ * İstiflenebilir yükte 2,70 m iç yüksekliğe sığan kat sayısı kadar parça üst üste konur.
+ * 0,01'e yukarı yuvarlanır.
+ */
+export const TRAILER_WIDTH_CM = 240
+export const TRAILER_HEIGHT_CM = 270
+export function ldmFromDims(dims: DimLine[] | null | undefined, stackable: boolean | null | undefined): number | null {
+  const valid = (dims ?? []).filter((d) => d.qty > 0 && d.l > 0 && d.w > 0 && d.h > 0)
+  if (!valid.length) return null
+  const total = valid.reduce((s, d) => {
+    const levels = stackable === false ? 1 : Math.max(1, Math.floor(TRAILER_HEIGHT_CM / d.h))
+    return s + Math.ceil(d.qty / levels) * (d.l * d.w) / (TRAILER_WIDTH_CM * 100)
+  }, 0)
+  return Math.ceil(Math.round(total * 10000) / 100) / 100
+}
+
+/**
  * Ücretlendirilebilir ağırlık:
- *  - Hava: max(brüt kg, CBM × 167), 0,5 kg'a yuvarlanır
- *  - Karayolu: max(brüt kg, CBM × 333)
+ *  - Hava: max(brüt kg, CBM × 167), üst tam sayıya yuvarlanır
+ *  - Karayolu: max(brüt kg, CBM × 333), üst tam sayıya yuvarlanır
  *  - Deniz LCL: W/M = max(CBM, brüt ton)
  */
 export function chargeableFor(mode: string | null | undefined, grossKg: number | null, cbm: number | null): number | null {
   if (!grossKg && !cbm) return null
   const g = grossKg ?? 0
   const v = cbm ?? 0
-  if (mode === 'air') return Math.ceil(Math.max(g, v * 167) * 2) / 2
+  if (mode === 'air') return Math.ceil(Math.max(g, v * 167))
   if (mode === 'road') return Math.ceil(Math.max(g, v * 333))
   if (mode === 'sea_lcl') return Math.round(Math.max(v, g / 1000) * 1000) / 1000
   return null

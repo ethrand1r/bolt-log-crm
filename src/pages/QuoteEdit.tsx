@@ -18,7 +18,7 @@ type Form = Partial<Quote>
 const QUOTE_FIELDS: (keyof Quote)[] = [
   'company_id', 'contact_id', 'opportunity_id', 'status', 'language', 'mode', 'direction', 'incoterm', 'pol', 'pod',
   'pickup_address', 'delivery_address', 'commodity', 'containers', 'packages', 'gross_weight', 'volume_cbm',
-  'chargeable_weight', 'dimensions', 'cargo_type', 'dg_un_no', 'dg_class', 'stackable', 'road_load', 'vehicle_type',
+  'chargeable_weight', 'ldm', 'dimensions', 'cargo_type', 'dg_un_no', 'dg_class', 'stackable', 'road_load', 'vehicle_type',
   'carrier', 'transit_time', 'frequency', 'valid_until', 'notes', 'terms',
 ]
 
@@ -185,7 +185,7 @@ export default function QuoteEdit() {
         incoterm: quote.incoterm, pol: quote.pol, pod: quote.pod, pickup_address: quote.pickup_address,
         delivery_address: quote.delivery_address, carrier: quote.carrier, commodity: quote.commodity,
         packages: quote.packages, gross_weight: quote.gross_weight, volume_cbm: quote.volume_cbm,
-        chargeable_weight: quote.chargeable_weight, dimensions: quote.dimensions ?? [], cargo_type: quote.cargo_type,
+        chargeable_weight: quote.chargeable_weight, ldm: quote.ldm, dimensions: quote.dimensions ?? [], cargo_type: quote.cargo_type,
         dg_un_no: quote.dg_un_no, dg_class: quote.dg_class, stackable: quote.stackable,
         road_load: quote.road_load, vehicle_type: quote.vehicle_type,
         containers: quote.mode === 'sea_fcl'

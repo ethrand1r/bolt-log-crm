@@ -29,7 +29,7 @@ export function CountryPicker({ value, onChange, placeholder = 'Ülke ara…' }:
   placeholder?: string
 }) {
   const [countries, loading] = useAsyncList(getCountries, [])
-  const options = useMemo(() => countries.map((c) => ({ value: c.code, label: c.name, keywords: `${c.code} ${c.en}` })), [countries])
+  const options = useMemo(() => countries.map((c) => ({ value: c.code, label: c.name, keywords: `${c.code} ${c.tr}` })), [countries])
   return (
     <Combobox options={options} loading={loading} value={value} placeholder={placeholder}
       onChange={(v) => onChange(v, countries.find((c) => c.code === v))} />
@@ -143,7 +143,8 @@ export function RoadPlacePicker({ value, onChange }: { value: string | null; onC
   // Kayıtlı değerden ülke kodunu bul
   useEffect(() => {
     if (!countryLabel || !countries.length) return
-    const c = countries.find((x) => x.name === countryLabel)
+    // Eski kayıtlarda ülke adı Türkçe olabilir
+    const c = countries.find((x) => x.name === countryLabel || x.tr === countryLabel)
     if (c) setCode(c.code)
   }, [countryLabel, countries])
 

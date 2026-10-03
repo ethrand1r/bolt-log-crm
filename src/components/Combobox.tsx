@@ -76,11 +76,12 @@ export function Combobox(props: SingleProps | MultiProps) {
   const showCreate = Boolean(trimmed && !exact && (onCreate || allowFree))
   const total = results.length + (showCreate ? 1 : 0)
 
+  // Dışarı tıklanınca kapat. Capture aşamasında dinlenir: Modal içindeki stopPropagation olayı belgeye ulaşmadan durdurur.
   useEffect(() => {
     if (!open) return
     const h = (e: MouseEvent) => { if (!wrap.current?.contains(e.target as Node)) close() }
-    document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
+    document.addEventListener('mousedown', h, true)
+    return () => document.removeEventListener('mousedown', h, true)
   })
 
   useEffect(() => { setActive(0) }, [query, open])
@@ -130,7 +131,8 @@ export function Combobox(props: SingleProps | MultiProps) {
   const singleText = !props.multiple && props.value ? labelOf(props.value) : ''
 
   return (
-    <div ref={wrap} className={`relative ${className}`}>
+    <div ref={wrap} className={`relative ${className}`}
+      onBlur={(e) => { if (open && !wrap.current?.contains(e.relatedTarget as Node | null) && e.relatedTarget) close() }}>
       <div
         className={`input flex min-h-[34px] flex-wrap items-center gap-1 py-1! pr-14! ${disabled ? 'pointer-events-none bg-slate-100' : 'cursor-text'}`}
         onClick={() => { if (!disabled) { setOpen(true); input.current?.focus() } }}

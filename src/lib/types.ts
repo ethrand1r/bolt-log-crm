@@ -72,6 +72,8 @@ export interface CargoFields {
   gross_weight: number | null
   volume_cbm: number | null
   chargeable_weight: number | null
+  /** Karayolu yükleme metresi */
+  ldm: number | null
   dimensions: DimLine[]
   cargo_type: string | null
   dg_un_no: string | null
@@ -150,6 +152,8 @@ export interface Shipment extends CargoFields {
   flight_no: string | null
   pol: string | null
   pod: string | null
+  /** Hava: aktarma havalimanları (sırayla) */
+  transits: string[]
   pickup_address: string | null
   delivery_address: string | null
   etd: string | null

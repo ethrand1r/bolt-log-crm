@@ -13,7 +13,7 @@ export const T = {
     pickup: 'Yükleme Adresi', delivery: 'Teslim Adresi',
     commodity: 'Emtia', cargoType: 'Yük Tipi', stack: 'İstifleme', stackYes: 'İstiflenebilir', stackNo: 'İstiflenemez',
     dims: 'Ölçüler', equipment: 'Ekipman', packages: 'Kap Adedi', gross: 'Brüt Ağırlık', volume: 'Hacim',
-    chargeable: 'Ücretlendirilen Ağırlık', wm: 'W/M', roadLoad: 'Yükleme Şekli', vehicle: 'Araç Tipi',
+    chargeable: 'Ücretlendirilen Ağırlık', ldm: 'Yükleme Metresi (LDM)', wm: 'W/M', roadLoad: 'Yükleme Şekli', vehicle: 'Araç Tipi',
     carrier: 'Taşıyıcı', transit: 'Transit Süre', frequency: 'Sefer Sıklığı',
     charges: 'Ücretler', desc: 'Açıklama', unit: 'Birim', qty: 'Miktar', price: 'Birim Fiyat', cur: 'Döviz', total: 'Toplam',
     grand: 'TOPLAM', notes: 'Notlar', terms: 'Şartlar ve Koşullar', bank: 'Banka Bilgileri', page: 'Sayfa',
@@ -32,7 +32,7 @@ export const T = {
     pickup: 'Pick-up Address', delivery: 'Delivery Address',
     commodity: 'Commodity', cargoType: 'Cargo Type', stack: 'Stacking', stackYes: 'Stackable', stackNo: 'Non-stackable',
     dims: 'Dimensions', equipment: 'Equipment', packages: 'Packages', gross: 'Gross Weight', volume: 'Volume',
-    chargeable: 'Chargeable Weight', wm: 'W/M', roadLoad: 'Load Type', vehicle: 'Vehicle Type',
+    chargeable: 'Chargeable Weight', ldm: 'Loading Meters (LDM)', wm: 'W/M', roadLoad: 'Load Type', vehicle: 'Vehicle Type',
     carrier: 'Carrier', transit: 'Transit Time', frequency: 'Frequency',
     charges: 'Charges', desc: 'Description', unit: 'Unit', qty: 'Qty', price: 'Unit Price', cur: 'Currency', total: 'Total',
     grand: 'TOTAL', notes: 'Notes', terms: 'Terms & Conditions', bank: 'Bank Details', page: 'Page',
@@ -94,7 +94,8 @@ export function detailRows(quote: Quote, lang: Lang): [string, string][] {
   if (quote.packages) rows.push([t.packages, String(quote.packages)])
   if (quote.gross_weight) rows.push([t.gross, `${num(Number(quote.gross_weight), lang)} kg`])
   if (quote.volume_cbm) rows.push([t.volume, `${num(Number(quote.volume_cbm), lang, 3)} m³`])
-  if (quote.chargeable_weight && (air || road)) rows.push([t.chargeable, `${num(Number(quote.chargeable_weight), lang)} kg`])
+  if (quote.chargeable_weight && (air || road)) rows.push([t.chargeable, `${num(Number(quote.chargeable_weight), lang, Number(quote.chargeable_weight) % 1 ? 2 : 0)} kg`])
+  if (quote.ldm && road) rows.push([t.ldm, num(Number(quote.ldm), lang)])
   if (quote.chargeable_weight && quote.mode === 'sea_lcl') rows.push([t.wm, num(Number(quote.chargeable_weight), lang, 3)])
   rows.push([t.carrier, quote.carrier ?? ''], [t.transit, quote.transit_time ?? ''], [t.frequency, quote.frequency ?? ''])
   return rows.filter(([, v]) => v)

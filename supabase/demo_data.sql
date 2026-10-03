@@ -8,14 +8,14 @@ delete from companies where 'demo' = any(tags);
 with c as (
   insert into companies (name, type, sectors, country, country_code, city, emails, phones, tags, source) values
     ('Anadolu Tekstil San. A.Ş.',     'prospect', '{"Tekstil & Hazır Giyim"}',              'Türkiye', 'TR', 'Bursa',     '{"export@anadolutekstil.example"}', '{"+90 224 000 00 01"}', '{demo}', 'Fuar'),
-    ('Ege Kuru Gıda Ltd. Şti.',       'customer', '{"Kuru Gıda & Kuruyemiş","Gıda"}',       'Türkiye', 'TR', 'İzmir',     '{"info@egekurugida.example"}',      '{"+90 232 000 00 02"}', '{demo}', 'Referans'),
+    ('Ege Kuru Gıda Ltd. Şti.',       'customer', '{"Kuru Gıda & Kuruyemiş","Gıda"}',       'Türkiye', 'TR', 'Izmir',     '{"info@egekurugida.example"}',      '{"+90 232 000 00 02"}', '{demo}', 'Referans'),
     ('Marmara Otomotiv Yedek Parça',  'prospect', '{"Otomotiv & Yedek Parça"}',             'Türkiye', 'TR', 'Kocaeli',   '{"lojistik@marmaraoto.example"}',   '{"+90 262 000 00 03"}', '{demo}', 'LinkedIn'),
     ('Konya Makine İmalat A.Ş.',      'prospect', '{"Makine & Ekipman"}',                   'Türkiye', 'TR', 'Konya',     '{"satis@konyamakine.example"}',     '{"+90 332 000 00 04"}', '{demo}', 'Soğuk arama'),
     ('Akdeniz Taze Meyve Koop.',      'customer', '{"Taze Meyve & Sebze"}',                 'Türkiye', 'TR', 'Mersin',    '{"ihracat@akdeniztaze.example"}',   '{"+90 324 000 00 05"}', '{demo}', 'Web sitesi'),
     ('Gaziantep Halı Dış Tic.',       'prospect', '{"Ev Tekstili & Halı"}',                 'Türkiye', 'TR', 'Gaziantep', '{"export@antephali.example"}',      '{"+90 342 000 00 06"}', '{demo}', 'Fuar'),
     ('Kayseri Mobilya Grup',          'prospect', '{"Mobilya"}',                            'Türkiye', 'TR', 'Kayseri',   '{"info@kayserimobilya.example"}',   '{"+90 352 000 00 07"}', '{demo}', 'E-posta kampanyası'),
-    ('İstanbul Medikal Cihaz A.Ş.',   'customer', '{"İlaç & Medikal","Elektrik & Elektronik"}', 'Türkiye', 'TR', 'İstanbul', '{"supply@istmedikal.example"}',   '{"+90 212 000 00 08"}', '{demo}', 'Referans'),
-    ('Rhein Logistik GmbH',           'agent',    '{"Lojistik / Forwarder"}',               'Almanya', 'DE', 'Hamburg',   '{"ops@rheinlog.example"}',          '{"+49 40 0000 0009"}',  '{demo}', 'Diğer'),
+    ('İstanbul Medikal Cihaz A.Ş.',   'customer', '{"İlaç & Medikal","Elektrik & Elektronik"}', 'Türkiye', 'TR', 'Istanbul', '{"supply@istmedikal.example"}',   '{"+90 212 000 00 08"}', '{demo}', 'Referans'),
+    ('Rhein Logistik GmbH',           'agent',    '{"Lojistik / Forwarder"}',               'Germany', 'DE', 'Hamburg',   '{"ops@rheinlog.example"}',          '{"+49 40 0000 0009"}',  '{demo}', 'Diğer'),
     ('Denizli Ev Tekstili San.',      'prospect', '{"Ev Tekstili & Halı","Tekstil & Hazır Giyim"}', 'Türkiye', 'TR', 'Denizli', '{"export@denizlitex.example"}', '{"+90 258 000 00 10"}', '{demo}', 'LinkedIn')
   returning id, name
 )
