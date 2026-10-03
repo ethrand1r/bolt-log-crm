@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-500: #2563eb;
+  --color-brand-600: #1d4ed8;
+  --color-brand-700: #1e40af;
+  --color-brand-900: #172554;
+  --color-surface: #ffffff;
+}
+
+/* Karanlık mod: renk ölçekleri tersine çevrilir, tüm ekranlar otomatik uyum sağlar */
+@custom-variant dark (&:where(.dark, .dark *));
+.dark {
+  color-scheme: dark;
+  --color-surface: #111a2e;
+  --color-slate-50: #0b1220;
+  --color-slate-100: #1a2438;
+  --color-slate-200: #29354b;
+  --color-slate-300: #3b4860;
+  --color-slate-400: #64748b;
+  --color-slate-500: #94a3b8;
+  --color-slate-600: #b8c3d3;
+  --color-slate-700: #d5dce6;
+  --color-slate-800: #e7ecf2;
+  --color-slate-900: #f5f7fa;
+  --color-brand-50: #16213f;
+  --color-brand-500: #60a5fa;
+  --color-brand-600: #3b82f6;
+  --color-brand-100: #1e2f5c;
+  --color-brand-700: #93b4fd;
+  --color-brand-900: #070d1c;
+  --color-red-50: #3a1717;
+  --color-red-200: #6b2626;
+  --color-red-700: #fca5a5;
+  --color-amber-50: #352710;
+  --color-emerald-700: #6ee7b7;
+}
+
+body { @apply bg-slate-50 text-slate-800 antialiased; }
+
+@utility input {
+  @apply w-full rounded-md border border-slate-300 bg-surface px-3 py-1.5 text-sm shadow-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:bg-slate-100;
+}
+@utility label { @apply mb-1 block text-xs font-medium text-slate-600; }
+@utility btn {
+  @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
+}
+@utility btn-primary { @apply btn bg-brand-600 text-white hover:bg-brand-700; }
+@utility btn-secondary { @apply btn border border-slate-300 bg-surface text-slate-700 hover:bg-slate-50; }
+@utility btn-danger { @apply btn border border-red-200 bg-surface text-red-600 hover:bg-red-50; }
+@utility btn-ghost { @apply btn text-slate-600 hover:bg-slate-100; }
+@utility card { @apply rounded-lg border border-slate-200 bg-surface shadow-sm; }
+
+@layer components {
+  .table-base { @apply w-full text-sm; }
+  .table-base th { @apply border-b border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase; }
+  .table-base td { @apply border-b border-slate-100 px-3 py-2 align-middle; }
+  .table-base tbody tr:hover { @apply bg-slate-50; }
+}
