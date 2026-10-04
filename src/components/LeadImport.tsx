@@ -6,6 +6,7 @@ import { getCountries, getSectors } from '../lib/refdata'
 import { findDup, loadDupIndex, nameKey, domainOf, parseBool, parseCsv, readTextFile, splitList, type DupIndex } from '../lib/leads'
 import { norm } from './Combobox'
 import { ErrorBox, Field, Modal, Select } from './ui'
+import { SearchSelect } from './leadForms'
 
 /** İçe aktarılabilen alanlar ve başlık eşleştirmesi için anahtar kelimeler */
 const FIELDS: { key: string; label: string; hints: string[] }[] = [
@@ -49,12 +50,13 @@ interface Prepared {
   dup: string | null
 }
 
-export function LeadImport({ onClose, onDone }: { onClose: () => void; onDone: (count: number) => void }) {
+export function LeadImport({ defaultSearchId, onClose, onDone }: { defaultSearchId?: string | null; onClose: () => void; onDone: (count: number) => void }) {
   const [fileName, setFileName] = useState('')
   const [rows, setRows] = useState<string[][]>([])
   const [mapping, setMapping] = useState<Mapping>({})
   const [source, setSource] = useState('İhracatçı listesi')
   const [sourceDetail, setSourceDetail] = useState('')
+  const [searchId, setSearchId] = useState<string | null>(defaultSearchId ?? null)
   const [dupIdx, setDupIdx] = useState<DupIndex | null>(null)
   const [refs, setRefs] = useState<{ sectors: string[]; countries: { code: string; name: string; tr: string }[] } | null>(null)
   const [busy, setBusy] = useState(false)
@@ -113,7 +115,7 @@ export function LeadImport({ onClose, onDone }: { onClose: () => void; onDone: (
         employees: Number.isNaN(employees) ? null : employees,
         exports: parseBool(get('exports')),
         est_volume: get('est_volume') || null, notes: get('notes') || null,
-        source: source || null, source_detail: sourceDetail || null,
+        source: source || null, source_detail: sourceDetail || null, search_id: searchId,
       }
       // Dosyanın kendi içindeki tekrarlar da atlanır
       const k = nameKey(name)
@@ -124,7 +126,7 @@ export function LeadImport({ onClose, onDone }: { onClose: () => void; onDone: (
       if (d) seenDomains.add(d)
       return { row, dup }
     })
-  }, [body, mapping, dupIdx, refs, source, sourceDetail])
+  }, [body, mapping, dupIdx, refs, source, sourceDetail, searchId])
 
   const toImport = prepared.filter((p) => !p.dup)
 
@@ -163,6 +165,9 @@ export function LeadImport({ onClose, onDone }: { onClose: () => void; onDone: (
         <div className="space-y-4">
           <div className="text-sm text-slate-600"><b>{fileName}</b> · {body.length} satır</div>
           <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Lead araması (tüm kayıtlar)" className="sm:col-span-2">
+              <SearchSelect value={searchId} onChange={setSearchId} />
+            </Field>
             <Field label="Kaynak (tüm kayıtlar)"><Select options={LEAD_SOURCES} value={source} onChange={setSource} /></Field>
             <Field label="Kaynak detayı"><input className="input" value={sourceDetail} onChange={(e) => setSourceDetail(e.target.value)} /></Field>
           </div>

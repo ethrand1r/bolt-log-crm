@@ -1,19 +1,19 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom'
 import { CalendarClock, FileUp, Plus, Search, Trash2 } from 'lucide-react'
 import { supabase, q } from '../lib/supabase'
-import type { Lead } from '../lib/types'
-import { LEAD_SOURCES, LEAD_STATUSES, OPEN_LEAD_STATUSES } from '../lib/constants'
+import type { Lead, LeadSearch } from '../lib/types'
+import { LEAD_DIRECTIONS, LEAD_SOURCES, LEAD_STATUSES, MODES, OPEN_LEAD_STATUSES, label } from '../lib/constants'
 import { fmtDate, todayISO } from '../lib/format'
-import { fetchAll, scoreTone } from '../lib/leads'
+import { fetchAll, getLeadSearches, scoreTone } from '../lib/leads'
 import { Badge, Empty, ErrorBox, PageHeader, Select, Spinner, useLoad } from '../components/ui'
 import { LeadForm } from '../components/leadForms'
 import { LeadImport } from '../components/LeadImport'
 
 type Row = Pick<Lead, 'id' | 'name' | 'sectors' | 'city' | 'country' | 'website' | 'source' | 'source_detail' | 'status' | 'score'
-  | 'next_action_date' | 'next_action_note' | 'last_contact_at' | 'converted_at' | 'contact_name' | 'created_at'>
+  | 'next_action_date' | 'next_action_note' | 'last_contact_at' | 'converted_at' | 'contact_name' | 'created_at' | 'search_id' | 'direction' | 'modes'>
 
-const COLUMNS = 'id,name,sectors,city,country,website,source,source_detail,status,score,next_action_date,next_action_note,last_contact_at,converted_at,contact_name,created_at'
+const COLUMNS = 'id,name,sectors,city,country,website,source,source_detail,status,score,next_action_date,next_action_note,last_contact_at,converted_at,contact_name,created_at,search_id,direction,modes'
 const PAGE = 200
 
 /** Liste görünümleri: açık lead'ler, takibi gelenler, tek tek durumlar, tümü */
@@ -31,6 +31,18 @@ const SORTS = [
   { value: 'name', label: 'Firma adı' },
 ]
 
+/** Lead Generation alt sekmeleri */
+export function LeadTabs() {
+  const cls = ({ isActive }: { isActive: boolean }) =>
+    `border-b-2 px-3 py-2 text-sm font-medium ${isActive ? 'border-brand-500 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-800'}`
+  return (
+    <div className="mb-4 flex gap-1 border-b border-slate-200">
+      <NavLink to="/lead-generation" end className={cls}>Lead'ler</NavLink>
+      <NavLink to="/lead-generation/aramalar" className={cls}>Aramalar</NavLink>
+    </div>
+  )
+}
+
 export function ScorePill({ score, className = '' }: { score: number; className?: string }) {
   return (
     <span className={`inline-flex min-w-9 justify-center rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums ${scoreTone(score)} ${className}`}
@@ -40,10 +52,15 @@ export function ScorePill({ score, className = '' }: { score: number; className?
 
 export default function LeadGeneration() {
   const nav = useNavigate()
+  const [params, setParams] = useSearchParams()
+  const searchId = params.get('arama') ?? ''
+  const setSearchId = (v: string) => { setParams(v ? { arama: v } : {}); setLimit(PAGE) }
   const [search, setSearch] = useState('')
   const [view, setView] = useState('open')
   const [source, setSource] = useState('')
   const [minScore, setMinScore] = useState('')
+  const [direction, setDirection] = useState('')
+  const [mode, setMode] = useState('')
   const [sort, setSort] = useState('score')
   const [limit, setLimit] = useState(PAGE)
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -51,7 +68,17 @@ export default function LeadGeneration() {
   const [modal, setModal] = useState<null | 'new' | 'import'>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
-  const { data, loading, error, reload } = useLoad(() => fetchAll<Row>('leads', COLUMNS))
+  const { data: loaded, loading, error, reload } = useLoad(async () => {
+    const [leads, searches] = await Promise.all([fetchAll<Row>('leads', COLUMNS), getLeadSearches()])
+    return { leads, searches }
+  })
+  const searches: LeadSearch[] = loaded?.searches ?? []
+  const searchName = useMemo(() => new Map(searches.map((s) => [s.id, s.name])), [searches])
+  // Sayaçlar ve liste seçili aramaya göre daraltılır
+  const data = useMemo(
+    () => loaded && (searchId ? loaded.leads.filter((l) => (searchId === 'none' ? !l.search_id : l.search_id === searchId)) : loaded.leads),
+    [loaded, searchId],
+  )
 
   const today = todayISO()
   const isOpen = (l: Row) => OPEN_LEAD_STATUSES.includes(l.status)
@@ -74,6 +101,9 @@ export default function LeadGeneration() {
       (view === 'all' || (view === 'open' ? isOpen(l) : view === 'due' ? isDue(l) : l.status === view)) &&
       (!source || l.source === source) &&
       (!minScore || l.score >= Number(minScore)) &&
+      // İhracat / ithalat seçilince iki yönlü (both) firmalar da listelenir
+      (!direction || l.direction === direction || (l.direction === 'both' && direction !== 'both')) &&
+      (!mode || (l.modes ?? []).includes(mode)) &&
       (!s || [l.name, l.city, l.country, l.website, l.contact_name, l.source_detail, ...(l.sectors ?? [])]
         .some((v) => v?.toLocaleLowerCase('tr').includes(s))))
     const by: Record<string, (a: Row, b: Row) => number> = {
@@ -83,7 +113,7 @@ export default function LeadGeneration() {
       name: (a, b) => a.name.localeCompare(b.name, 'tr'),
     }
     return list.sort(by[sort])
-  }, [data, search, view, source, minScore, sort, today])
+  }, [data, search, view, source, minScore, direction, mode, sort, today])
 
   const shown = rows.slice(0, limit)
   const allShownSelected = shown.length > 0 && shown.every((r) => selected.has(r.id))
@@ -122,7 +152,7 @@ export default function LeadGeneration() {
     <>
       <PageHeader
         title="Lead Generation"
-        subtitle="Aday firmalar puanlarına göre sıralanır. Nitelikli olanları firmaya dönüştürün."
+        subtitle={searchId && searchId !== 'none' ? `Arama: ${searchName.get(searchId) ?? '…'}` : 'Aday firmalar puanlarına göre sıralanır. Nitelikli olanları firmaya dönüştürün.'}
         actions={
           <>
             <button className="btn-secondary" onClick={() => setModal('import')}><FileUp className="h-4 w-4" /> İçe aktar</button>
@@ -130,6 +160,7 @@ export default function LeadGeneration() {
           </>
         }
       />
+      <LeadTabs />
       <ErrorBox error={error ?? err} />
       {msg && <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{msg}</div>}
 
@@ -157,9 +188,14 @@ export default function LeadGeneration() {
           <Search className="absolute top-2 left-2.5 h-4 w-4 text-slate-400" />
           <input className="input pl-8!" placeholder="Firma, kişi, şehir, sektör ara…" value={search} onChange={(e) => { setSearch(e.target.value); setLimit(PAGE) }} />
         </div>
+        <Select className="w-auto!" options={[{ value: 'none', label: 'Aramaya bağlı olmayanlar' }, ...searches.map((s) => ({ value: s.id, label: s.name }))]}
+          placeholder="Tüm aramalar" value={searchId} onChange={setSearchId} />
         <Select className="w-auto!" options={VIEWS} value={view} onChange={(v) => { setView(v); setLimit(PAGE) }} />
         <Select className="w-auto!" options={LEAD_SOURCES} placeholder="Tüm kaynaklar" value={source} onChange={setSource} />
         <Select className="w-auto!" options={[{ value: '70', label: '70+ puan' }, { value: '40', label: '40+ puan' }]} placeholder="Tüm puanlar" value={minScore} onChange={setMinScore} />
+        <Select className="w-auto!" options={[{ value: 'export', label: 'İhracatçılar' }, { value: 'import', label: 'İthalatçılar' }, { value: 'both', label: 'Yalnız iki yönlüler' }]}
+          placeholder="Tüm yönler" value={direction} onChange={(v) => { setDirection(v); setLimit(PAGE) }} />
+        <Select className="w-auto!" options={MODES} placeholder="Tüm modlar" value={mode} onChange={(v) => { setMode(v); setLimit(PAGE) }} />
         <Select className="w-auto!" options={SORTS} value={sort} onChange={setSort} />
       </div>
 
@@ -186,7 +222,7 @@ export default function LeadGeneration() {
                   <input type="checkbox" checked={allShownSelected} aria-label="Tümünü seç"
                     onChange={() => setSelected(allShownSelected ? new Set() : new Set(shown.map((r) => r.id)))} />
                 </th>
-                <th>Puan</th><th>Firma</th><th>Sektör</th><th>Konum</th><th>Kaynak</th><th>Durum</th><th>Son temas</th><th>Sonraki adım</th>
+                <th>Puan</th><th>Firma</th><th>Sektör</th><th>Konum</th><th>Yön / Mod</th><th>Arama / Kaynak</th><th>Durum</th><th>Son temas</th><th>Sonraki adım</th>
               </tr>
             </thead>
             <tbody>
@@ -202,7 +238,14 @@ export default function LeadGeneration() {
                   </td>
                   <td className="max-w-48 truncate text-slate-600" title={(l.sectors ?? []).join(', ')}>{(l.sectors ?? []).join(', ')}</td>
                   <td className="text-slate-600">{[l.city, l.country].filter(Boolean).join(', ')}</td>
+                  <td className="whitespace-nowrap">
+                    <div className="text-slate-700">{label(LEAD_DIRECTIONS, l.direction) || <span className="text-slate-400">-</span>}</div>
+                    {(l.modes ?? []).length > 0 && (
+                      <div className="mt-0.5 flex flex-wrap gap-1">{(l.modes ?? []).map((m) => <Badge key={m} list={MODES} value={m} />)}</div>
+                    )}
+                  </td>
                   <td className="text-slate-600">
+                    {l.search_id && <div className="max-w-44 truncate font-medium text-slate-700">{searchName.get(l.search_id)}</div>}
                     {l.source}
                     {l.source_detail && <div className="max-w-40 truncate text-xs text-slate-400" title={l.source_detail}>{l.source_detail}</div>}
                   </td>
@@ -227,9 +270,9 @@ export default function LeadGeneration() {
       </div>
       {data && rows.length > 0 && <p className="mt-2 text-xs text-slate-400">{rows.length} lead listeleniyor</p>}
 
-      {modal === 'new' && <LeadForm onClose={() => setModal(null)} onSaved={(l) => nav(`/lead-generation/${l.id}`)} />}
+      {modal === 'new' && <LeadForm defaultSearchId={searchId && searchId !== 'none' ? searchId : null} onClose={() => setModal(null)} onSaved={(l) => nav(`/lead-generation/${l.id}`)} />}
       {modal === 'import' && (
-        <LeadImport onClose={() => setModal(null)} onDone={(n) => { setModal(null); setMsg(`${n} lead içe aktarıldı ve puanlandı.`); reload() }} />
+        <LeadImport defaultSearchId={searchId && searchId !== 'none' ? searchId : null} onClose={() => setModal(null)} onDone={(n) => { setModal(null); setMsg(`${n} lead içe aktarıldı ve puanlandı.`); reload() }} />
       )}
     </>
   )

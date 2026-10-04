@@ -2,9 +2,11 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Moon, Plus, Save, Sun, Trash2 } from 'lucide-react'
 import { getTheme, setTheme, type Theme } from '../lib/theme'
 import { supabase, q } from '../lib/supabase'
-import type { ChargeTemplate, LeadScoring, Location, Settings } from '../lib/types'
+import type { ChargeTemplate, LeadConfig, LeadScoring, Location, Settings } from '../lib/types'
+import { DEFAULT_LEAD_CONFIG } from '../lib/trade'
+import { CityMultiPicker, SectorPicker } from '../components/pickers'
 import { CHARGE_UNITS, CURRENCIES, MODES } from '../lib/constants'
-import { CityMultiPicker, CountryMultiPicker, SectorPicker } from '../components/pickers'
+import { Link } from 'react-router-dom'
 import { ToggleChips } from '../components/leadForms'
 import { clean } from '../lib/format'
 import { getSettings, invalidateRefData } from '../lib/refdata'
@@ -73,8 +75,7 @@ function CompanySettings() {
 }
 
 const SCORING_DEFAULTS: LeadScoring = {
-  target_sectors: [], w_sector: 0, target_cities: [], w_city: 0, w_exports: 0, target_modes: [], w_mode: 0,
-  target_markets: [], w_market: 0, min_employees: 0, w_size: 0, w_contact: 0, w_person: 0, w_website: 0,
+  w_sector: 0, w_city: 0, w_market: 0, w_exports: 0, target_modes: [], w_mode: 0, min_employees: 0, w_size: 0, w_contact: 0, w_person: 0, w_website: 0,
 }
 
 function LeadScoringSettings() {
@@ -83,7 +84,11 @@ function LeadScoringSettings() {
   const [msg, setMsg] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   useEffect(() => {
-    getSettings().then((s) => setF({ ...SCORING_DEFAULTS, ...s.lead_scoring })).catch((e) => setError(e.message))
+    getSettings().then((s) => {
+      // Eski kayıtlardan kalan hedef listeleri (artık aramada) ayıklanır
+      const { target_sectors: _a, target_cities: _b, target_markets: _c, ...rest } = (s.lead_scoring ?? {}) as LeadScoring & Record<string, unknown>
+      setF({ ...SCORING_DEFAULTS, ...rest })
+    }).catch((e) => setError(e.message))
   }, [])
   if (!f) return error ? <ErrorBox error={error} /> : <Spinner />
   const set = <K extends keyof LeadScoring>(k: K, v: LeadScoring[K]) => { setF({ ...f, [k]: v }); setMsg(null) }
@@ -127,19 +132,99 @@ function LeadScoringSettings() {
     }>
       <ErrorBox error={error} />
       <p className="mb-2 text-sm text-slate-600">
-        Her lead, sağladığı kriterlerin ağırlığı oranında 0-100 arası puan alır. Ağırlığı 0 olan veya hedef listesi boş olan kriter hesaba katılmaz.
-        Bilgisi girilmemiş kriter puan getirmez. Kaydettiğinizde tüm lead’ler yeniden puanlanır.
+        Her lead, sağladığı kriterlerin ağırlığı oranında 0-100 arası puan alır. Ağırlığı 0 olan kriter hesaba katılmaz,
+        bilgisi girilmemiş kriter puan getirmez. Hedef sektör, bölge ve pazarlar her lead aramasında ayrıca belirlenir
+        (<Link to="/lead-generation/aramalar" className="text-brand-600 hover:underline">Lead Generation › Aramalar</Link>);
+        aramaya bağlı olmayan lead'lerde bu üç kriter kullanılmaz. Kaydettiğinizde tüm lead’ler yeniden puanlanır.
       </p>
       <div className="mb-1 flex justify-end text-xs text-slate-500">Ağırlık · toplam {total}</div>
-      {row('Hedef sektörler', 'Lead’in sektörlerinden biri listede ise', 'w_sector', <SectorPicker value={f.target_sectors} onChange={(v) => set('target_sectors', v)} />)}
-      {row('Hedef bölgeler', 'Lead’in şehri listede ise', 'w_city', <CityMultiPicker countryCode="TR" value={f.target_cities} onChange={(v) => set('target_cities', v)} />)}
+      {row('Hedef sektör', 'Lead’in sektörü aramanın ihracat veya ithalat sektörlerinde ise', 'w_sector', <span className="text-xs text-slate-500">Aramada belirlenir</span>)}
+      {row('Hedef bölge', 'Lead’in şehri, sektörünün aramadaki hedef illerinde ise', 'w_city', <span className="text-xs text-slate-500">Aramada belirlenir</span>)}
+      {row('Hedef ülke', 'Ticaret yaptığı ülkeler arasında aramanın ülkesi varsa', 'w_market', <span className="text-xs text-slate-500">Aramanın ülkesi</span>)}
       {row('İhracat yapıyor', '“İhracat yapıyor mu?” Evet ise', 'w_exports')}
       {row('Taşıma modu', 'Lead’in muhtemel modlarından biri seçili ise', 'w_mode', <ToggleChips options={MODES} value={f.target_modes} onChange={(v) => set('target_modes', v)} />)}
-      {row('Hedef pazarlar', 'Satış yaptığı ülkelerden biri listede ise', 'w_market', <CountryMultiPicker value={f.target_markets} onChange={(v) => set('target_markets', v)} placeholder="ör. Almanya, ABD…" />)}
       {row('Firma büyüklüğü', 'Çalışan sayısı en az', 'w_size', <input className="input w-28!" type="number" min={0} value={f.min_employees} onChange={(e) => set('min_employees', Math.max(0, Number(e.target.value) || 0))} />)}
       {row('İletişim bilgisi var', 'Firma veya kişi e-posta/telefonu', 'w_contact')}
       {row('İrtibat kişisi belli', 'Ad soyad girilmiş', 'w_person')}
       {row('Web sitesi var', null, 'w_website')}
+    </Section>
+  )
+}
+
+function LeadSearchSettings() {
+  const [cfg, setCfg] = useState<LeadConfig | null>(null)
+  const [regions, setRegions] = useState<{ sector: string; cities: string[] }[]>([])
+  const [dirty, setDirty] = useState<Set<string>>(new Set())
+  const [error, setError] = useState<string | null>(null)
+  const [msg, setMsg] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    Promise.all([getSettings(), q<{ sector: string; cities: string[] }[]>(supabase.from('sector_regions').select('sector,cities').order('sector'))])
+      .then(([s, r]) => { setCfg({ ...DEFAULT_LEAD_CONFIG, ...s.lead_config }); setRegions(r) })
+      .catch((e) => setError(e.message))
+  }, [])
+  if (!cfg) return error ? <ErrorBox error={error} /> : <Spinner />
+  const set = <K extends keyof LeadConfig>(k: K, v: LeadConfig[K]) => { setCfg({ ...cfg, [k]: v }); setMsg(null) }
+  const setRegion = (sector: string, cities: string[]) => {
+    setRegions(regions.map((r) => (r.sector === sector ? { ...r, cities } : r)))
+    setDirty(new Set(dirty).add(sector))
+    setMsg(null)
+  }
+
+  async function save() {
+    setError(null)
+    setBusy(true)
+    try {
+      await q(supabase.from('settings').update({ lead_config: cfg }).eq('id', 1))
+      const changed = regions.filter((r) => dirty.has(r.sector))
+      if (changed.length) await q(supabase.from('sector_regions').upsert(changed))
+      setDirty(new Set())
+      setMsg('Kaydedildi ✓ (yeni aramalarda geçerli)')
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Section title="Lead araması (hedef ülke analizi)" actions={
+      <div className="flex items-center gap-2">
+        {msg && <span className="text-xs text-emerald-600">{msg}</span>}
+        <button className="btn-primary" disabled={busy} onClick={save}><Save className="h-4 w-4" /> {busy ? 'Kaydediliyor…' : 'Kaydet'}</button>
+      </div>
+    }>
+      <ErrorBox error={error} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Otomatik seçim: hacmin yüzde kaçı (%)">
+          <input className="input" type="number" min={10} max={100} value={cfg.coverage} onChange={(e) => set('coverage', Math.min(100, Math.max(10, Number(e.target.value) || 80)))} />
+        </Field>
+        <Field label="Yön başına en fazla sektör">
+          <input className="input" type="number" min={1} max={30} value={cfg.max_sectors} onChange={(e) => set('max_sectors', Math.max(1, Number(e.target.value) || 10))} />
+        </Field>
+        <div>
+          <span className="label">Her sektöre eklenen iller</span>
+          <CityMultiPicker countryCode="TR" value={cfg.always_cities} onChange={(v) => set('always_cities', v)} />
+        </div>
+        <div>
+          <span className="label">Analize alınmayan sektörler</span>
+          <SectorPicker value={cfg.excluded_sectors} onChange={(v) => set('excluded_sectors', v)} />
+        </div>
+      </div>
+      <h4 className="mt-5 mb-1 text-xs font-semibold tracking-wide text-slate-500 uppercase">Sektörlerin yoğunlaştığı iller (ilk 5)</h4>
+      <p className="mb-2 text-xs text-slate-500">Yeni aramada her sektörün varsayılan hedef bölgeleri buradan gelir. Arama ekranında ayrıca değiştirilebilir.</p>
+      <div className="max-h-[28rem] overflow-y-auto">
+        <table className="table-base">
+          <tbody>
+            {regions.map((r) => (
+              <tr key={r.sector}>
+                <td className="w-56 text-sm font-medium">{r.sector}</td>
+                <td><CityMultiPicker countryCode="TR" value={r.cities} onChange={(v) => setRegion(r.sector, v)} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </Section>
   )
 }
@@ -275,6 +360,7 @@ export default function SettingsPage() {
       <div className="space-y-4">
         <Appearance />
         <CompanySettings />
+        <LeadSearchSettings />
         <LeadScoringSettings />
         <div className="grid gap-4 xl:grid-cols-2">
           <Templates />

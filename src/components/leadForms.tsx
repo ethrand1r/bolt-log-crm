@@ -1,10 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { supabase, q } from '../lib/supabase'
-import type { Lead, LeadActivity } from '../lib/types'
+import type { Lead, LeadActivity, LeadSearch } from '../lib/types'
 import { LEAD_ACTIVITY_TYPES, LEAD_DIRECTIONS, LEAD_OUTCOMES, LEAD_SOURCES, LEAD_STATUSES, MODES } from '../lib/constants'
 import { clean, numOrNull } from '../lib/format'
-import { findDup, loadDupIndex } from '../lib/leads'
+import { findDup, getLeadSearches, loadDupIndex } from '../lib/leads'
 import { ErrorBox, Field, Modal, Select } from './ui'
 import { Footer, useSave } from './forms'
 import { CityPicker, CompanyCombo, CountryMultiPicker, CountryPicker, MultiTextInput, SectorPicker } from './pickers'
@@ -28,14 +28,30 @@ export function ToggleChips({ options, value, onChange }: { options: { value: st
   )
 }
 
+/** Lead araması seçimi. Arşivlenmiş aramalar sadece seçili değerse listelenir. */
+export function SearchSelect({ value, onChange, placeholder = 'Aramaya bağlı değil' }: {
+  value: string | null | undefined
+  onChange: (id: string | null) => void
+  placeholder?: string
+}) {
+  const [list, setList] = useState<LeadSearch[]>([])
+  useEffect(() => { getLeadSearches().then(setList).catch(() => {}) }, [])
+  const options = list.filter((s) => s.status === 'active' || s.id === value).map((s) => ({ value: s.id, label: s.name }))
+  return <Select options={options} placeholder={placeholder} value={value} onChange={(v) => onChange(v || null)} />
+}
+
 // ------------------------------------------------------------------ Lead
-export function LeadForm({ lead, onClose, onSaved }: {
+export function LeadForm({ lead, defaultSearchId, onClose, onSaved }: {
   lead?: Lead | null
+  defaultSearchId?: string | null
   onClose: () => void
   onSaved: (l: Lead) => void
 }) {
   const [f, setF] = useState<Partial<Lead>>(
-    lead ?? { country: 'Türkiye', country_code: 'TR', sectors: [], modes: [], target_markets: [], phones: [''], emails: [''], status: 'new' },
+    lead ?? {
+      country: 'Türkiye', country_code: 'TR', sectors: [], modes: [], target_markets: [], phones: [''], emails: [''], status: 'new',
+      search_id: defaultSearchId ?? null,
+    },
   )
   const [dup, setDup] = useState<string | null>(null)
   const { busy, error, run } = useSave()
@@ -60,7 +76,7 @@ export function LeadForm({ lead, onClose, onSaved }: {
         source: f.source, source_detail: f.source_detail, exports: f.exports ?? null, employees: numOrNull(f.employees),
         modes: f.modes ?? [], direction: f.direction, target_markets: f.target_markets ?? [], est_volume: f.est_volume,
         status: f.status, disqualify_reason: f.status === 'disqualified' ? f.disqualify_reason : null,
-        next_action_date: f.next_action_date, next_action_note: f.next_action_note, notes: f.notes,
+        next_action_date: f.next_action_date, next_action_note: f.next_action_note, notes: f.notes, search_id: f.search_id ?? null,
       })
       const saved = lead
         ? await q<Lead>(supabase.from('leads').update(payload).eq('id', lead.id).select().single())
@@ -84,6 +100,9 @@ export function LeadForm({ lead, onClose, onSaved }: {
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Firma adı *" className="sm:col-span-2">
             <input className="input" required autoFocus value={f.name ?? ''} onChange={(e) => set('name', e.target.value)} />
+          </Field>
+          <Field label="Lead araması" className="sm:col-span-2">
+            <SearchSelect value={f.search_id} onChange={(v) => set('search_id', v)} />
           </Field>
           <Field label="Kaynak"><Select options={LEAD_SOURCES} placeholder="-" value={f.source} onChange={(v) => set('source', v)} /></Field>
           <Field label="Kaynak detayı">
@@ -243,7 +262,7 @@ export function ConvertLeadModal({ lead, onClose, onDone }: { lead: Lead; onClos
       <form onSubmit={submit}>
         <ErrorBox error={error} />
         <p className="mb-3 text-sm text-slate-600">
-          Lead, <b>Potansiyel Müşteri</b> olarak firmalara eklenir. İrtibat kişisi ve temas geçmişi de firmaya aktarılır.
+          Firma <b>Müşteri</b> (cari) olarak açılır ve satış hunisinde <b>Kazanıldı</b> aşamasına düşer. İrtibat kişisi ve temas geçmişi de firmaya aktarılır.
         </p>
         {dup && (
           <div className="mb-3 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
@@ -260,7 +279,7 @@ export function ConvertLeadModal({ lead, onClose, onDone }: { lead: Lead; onClos
             </Field>
           )}
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={withOpp} onChange={(e) => setWithOpp(e.target.checked)} /> Satış hunisinde fırsat oluştur
+            <input type="checkbox" checked={withOpp} onChange={(e) => setWithOpp(e.target.checked)} /> Satış hunisinde kazanılmış fırsat oluştur
           </label>
           {withOpp && (
             <div className="grid gap-3 sm:grid-cols-[1fr_9rem]">

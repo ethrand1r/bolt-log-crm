@@ -1,5 +1,11 @@
 import { supabase, q } from './supabase'
 import { norm } from '../components/Combobox'
+import type { LeadSearch } from './types'
+
+// ------------------------------------------------------------ Aramalar
+export function getLeadSearches(): Promise<LeadSearch[]> {
+  return q<LeadSearch[]>(supabase.from('lead_searches').select('*').order('created_at', { ascending: false }))
+}
 
 // ------------------------------------------------------------ Puan
 export function scoreTone(score: number): string {

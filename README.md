@@ -8,12 +8,18 @@
    2. `supabase/002_update.sql`: sektörler, çoklu telefon/e-posta, EORI, karayolu, ölçüler, fatura durumları
    3. `supabase/003_update.sql`: teklif numarası (SEA/AIR/ROAD), LDM, hava aktarma noktaları, İngilizce ülke adları
    4. `supabase/004_leads.sql`: Lead Generation (lead havuzu, temas logu, otomatik puanlama, firmaya dönüştürme)
-   5. `supabase/demo_data.sql`: (isteğe bağlı) 10 örnek firma + 20 örnek fırsat.
+   5. `supabase/005_lead_searches.sql`: Ülke bazlı lead aramaları (ticaret verisinden sektör + bölge), dönüştürmede Müşteri + Kazanıldı
+   6. `supabase/006_lead_modes.sql`: Aramaya bağlı lead'lerde muhtemel taşıma modu otomatik
+   7. `supabase/demo_data.sql`: (isteğe bağlı) 10 örnek firma + 20 örnek fırsat.
       Silmek için: `delete from companies where 'demo' = any(tags);`
 3. **Authentication > Users > Add user > Create new user** ile kendi e-posta ve şifrenizi oluşturun ("Auto confirm user" işaretli olsun).
 4. **Authentication > Sign In / Providers** altında **"Allow new users to sign up"** seçeneğini **kapatın**.
    Bu önemli: kapatılmazsa başkaları kendi hesabını açıp verilere erişebilir.
-5. **Project Settings > API** sayfasından `Project URL` ve `anon public` anahtarını kopyalayın.
+5. **Project Settings > API Keys** sayfasından `Project URL` ve **Publishable key** (`sb_publishable_…`) değerini kopyalayın.
+   Eski `anon` (eyJ…) anahtar Edge Function'larda kabul edilmez. **Secret** anahtarı asla kullanmayın.
+6. **Edge Function (lead araması için ticaret verisi):** **Edge Functions > Deploy a new function > Via Editor**.
+   Fonksiyon adı tam olarak `trade-stats` olmalı. Editördeki örnek kodu silip `supabase/functions/trade-stats/index.ts`
+   dosyasının tamamını yapıştırın ve **Deploy** deyin. Anahtar gerekmez (UN Comtrade'in ücretsiz servisi kullanılır).
 
 ## 2. Bilgisayarda çalıştırma
 

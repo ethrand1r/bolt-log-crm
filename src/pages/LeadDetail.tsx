@@ -6,6 +6,7 @@ import type { Lead, LeadActivity } from '../lib/types'
 import { LEAD_ACTIVITY_TYPES, LEAD_DIRECTIONS, LEAD_OUTCOMES, LEAD_STATUSES, MODES, label } from '../lib/constants'
 import { fmtDate, fmtDateTime, todayISO } from '../lib/format'
 import { getCountries } from '../lib/refdata'
+import { getLeadSearches } from '../lib/leads'
 import { Badge, Empty, ErrorBox, PageHeader, Section, Spinner, useLoad } from '../components/ui'
 import { ConvertLeadModal, LeadActivityForm, LeadForm } from '../components/leadForms'
 import { ScorePill } from './LeadGeneration'
@@ -14,6 +15,7 @@ interface Detail {
   lead: Lead
   activities: LeadActivity[]
   countryNames: Map<string, string>
+  searchName: string | null
 }
 
 const href = (url: string) => (/^https?:\/\//i.test(url) ? url : `https://${url}`)
@@ -25,17 +27,21 @@ export default function LeadDetail() {
   const [err, setErr] = useState<string | null>(null)
 
   const { data, loading, error, reload } = useLoad<Detail>(async () => {
-    const [lead, activities, countries] = await Promise.all([
+    const [lead, activities, countries, searches] = await Promise.all([
       q<Lead>(supabase.from('leads').select('*').eq('id', id!).single()),
       q<LeadActivity[]>(supabase.from('lead_activities').select('*').eq('lead_id', id!).order('activity_date', { ascending: false })),
       getCountries().catch(() => []),
+      getLeadSearches(),
     ])
-    return { lead, activities, countryNames: new Map(countries.map((c) => [c.code, c.name])) }
+    return {
+      lead, activities, countryNames: new Map(countries.map((c) => [c.code, c.name])),
+      searchName: searches.find((s) => s.id === lead.search_id)?.name ?? null,
+    }
   }, [id])
 
   if (loading && !data) return <Spinner />
   if (error || !data) return <ErrorBox error={error ?? 'Lead bulunamadı'} />
-  const { lead: l, activities, countryNames } = data
+  const { lead: l, activities, countryNames, searchName } = data
   const converted = l.status === 'converted'
   const due = !converted && l.next_action_date && l.next_action_date <= todayISO()
 
@@ -67,6 +73,7 @@ export default function LeadDetail() {
   }
 
   const info: [string, React.ReactNode][] = [
+    ['Arama', l.search_id && searchName && <Link to={`/lead-generation?arama=${l.search_id}`} className="text-brand-600 hover:underline">{searchName}</Link>],
     ['Web', l.website && <a href={href(l.website)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-brand-600 hover:underline">{l.website}<ExternalLink className="h-3 w-3" /></a>],
     ['LinkedIn', l.linkedin_url && <a href={href(l.linkedin_url)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-brand-600 hover:underline">Profil<ExternalLink className="h-3 w-3" /></a>],
     ['E-posta', (l.emails ?? []).filter(Boolean).map((e) => <a key={e} href={`mailto:${e}`} className="block hover:text-brand-600">{e}</a>)],
@@ -145,7 +152,7 @@ export default function LeadDetail() {
           </Section>
 
           <Section title={`Puan: ${l.score} / 100`}>
-            {!l.score_items?.length ? <Empty>Ayarlar’da aktif puanlama kriteri yok.</Empty> : (
+            {!l.score_items?.length ? <Empty>Aktif puanlama kriteri yok.</Empty> : (
               <ul className="space-y-1.5 text-sm">
                 {l.score_items.map((s) => (
                   <li key={s.key} className="flex items-center gap-2">
@@ -161,7 +168,10 @@ export default function LeadDetail() {
                 )}
               </ul>
             )}
-            <p className="mt-3 text-xs text-slate-400">Kriterler: <Link to="/ayarlar" className="hover:underline">Ayarlar › Lead puanlama</Link></p>
+            <p className="mt-3 text-xs text-slate-400">
+              {l.search_id ? 'Sektör, bölge ve pazar hedefleri aramadan' : 'Aramaya bağlı olmadığı için sektör, bölge ve pazar kriterleri kullanılmıyor'}
+              ; ağırlıklar <Link to="/ayarlar" className="hover:underline">Ayarlar › Lead puanlama</Link>’dan gelir.
+            </p>
           </Section>
         </div>
 

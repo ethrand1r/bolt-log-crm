@@ -122,7 +122,7 @@ export const ROAD_LOADS: Option[] = [
 ]
 export const VEHICLE_TYPES = ['Tenteli', 'Mega', 'Frigo', 'Kapalı kasa', 'Açık kasa', 'Lowbed', 'Konteyner taşıyıcı', 'Kamyon', 'Kamyonet / Panelvan']
 
-export const COMPANY_SOURCES = ['Referans', 'Web sitesi', 'LinkedIn', 'Soğuk arama', 'Fuar', 'İhracatçı listesi', 'Google Maps', 'E-posta kampanyası', 'Mevcut müşteri', 'Diğer']
+export const COMPANY_SOURCES = ['Lead Scraping', 'Referans', 'Web sitesi', 'LinkedIn', 'Soğuk arama', 'Fuar', 'İhracatçı listesi', 'Google Maps', 'E-posta kampanyası', 'Mevcut müşteri', 'Diğer']
 
 // ------------------------------------------------------------ Lead Generation
 export const LEAD_STATUSES: Option[] = [
@@ -136,7 +136,7 @@ export const LEAD_STATUSES: Option[] = [
 /** Üzerinde çalışılan (kapanmamış) lead durumları */
 export const OPEN_LEAD_STATUSES = ['new', 'contacted', 'interested', 'qualified']
 
-export const LEAD_SOURCES = ['Fuar', 'İhracatçı listesi', 'LinkedIn', 'Google Maps', 'Web sitesi', 'Referans', 'Soğuk arama', 'Diğer']
+export const LEAD_SOURCES = ['Lead Scraping', 'Fuar', 'İhracatçı listesi', 'LinkedIn', 'Google Maps', 'Web sitesi', 'Referans', 'Soğuk arama', 'Diğer']
 
 export const LEAD_ACTIVITY_TYPES: Option[] = [
   { value: 'call', label: 'Telefon' },

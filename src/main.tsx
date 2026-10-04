@@ -10,6 +10,8 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import LeadGeneration from './pages/LeadGeneration'
 import LeadDetail from './pages/LeadDetail'
+import LeadSearches from './pages/LeadSearches'
+import LeadSearchEdit from './pages/LeadSearchEdit'
 import Companies from './pages/Companies'
 import CompanyDetail from './pages/CompanyDetail'
 import Pipeline from './pages/Pipeline'
@@ -46,6 +48,9 @@ function App() {
       <Route element={<Layout />}>
         <Route index element={<Dashboard />} />
         <Route path="lead-generation" element={<LeadGeneration />} />
+        <Route path="lead-generation/aramalar" element={<LeadSearches />} />
+        <Route path="lead-generation/aramalar/yeni" element={<LeadSearchEdit key="yeni" />} />
+        <Route path="lead-generation/aramalar/:id" element={<LeadSearchEdit />} />
         <Route path="lead-generation/:id" element={<LeadDetail />} />
         <Route path="firmalar" element={<Companies />} />
         <Route path="firmalar/:id" element={<CompanyDetail />} />

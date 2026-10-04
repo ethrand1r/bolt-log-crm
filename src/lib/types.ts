@@ -237,10 +237,66 @@ export interface Lead {
   last_contact_at: string | null
   company_id: string | null
   converted_at: string | null
+  search_id: string | null
   notes: string | null
   tags: string[] | null
   created_at: string
   updated_at: string
+}
+
+/** Comtrade: Türkiye ↔ ülke ticareti, HS fasılları bazında (USD) */
+export interface TradeData {
+  year: number
+  prevYear: number
+  rows: { flow: 'X' | 'M'; hs: string; value: number; prev: number }[]
+  fetched_at?: string
+}
+
+/** Aramada seçilmiş bir sektör (ihracat veya ithalat yönünde) */
+export interface SearchSector {
+  sector: string
+  value: number
+  prev_value: number
+  /** Yöndeki toplam içindeki pay (0-1) */
+  share: number
+  mode: 'sea' | 'air' | 'mixed'
+  hs: string[]
+  /** Hedef bölgeler (il) */
+  cities: string[]
+}
+
+export interface SearchCriteria {
+  year: number
+  prev_year: number
+  export: SearchSector[]
+  import: SearchSector[]
+}
+
+/**
+ * Lead araması: ülke girilir, ticaret verisinden ihracat ve ithalat için hedef sektör + bölgeler çıkarılır.
+ * Bu aramaya bağlı lead'ler bu hedeflere göre puanlanır, yönleri (ihracatçı / ithalatçı) otomatik belirlenir.
+ */
+export interface LeadSearch {
+  id: string
+  name: string
+  country_code: string
+  country: string | null
+  criteria: SearchCriteria
+  notes: string | null
+  status: 'active' | 'archived'
+  created_at: string
+  updated_at: string
+}
+
+/** Ayarlar > Lead araması */
+export interface LeadConfig {
+  /** Toplam hacmin yüzde kaçını oluşturan sektörler seçilsin */
+  coverage: number
+  max_sectors: number
+  /** Her sektöre eklenen iller */
+  always_cities: string[]
+  /** Analize hiç alınmayan sektörler (ör. boru hattı / dökme enerji) */
+  excluded_sectors: string[]
 }
 
 export interface LeadActivity {
@@ -255,17 +311,17 @@ export interface LeadActivity {
   created_at: string
 }
 
-/** Ayarlar > Lead puanlama. Ağırlığı 0 olan kriter hesaba katılmaz. */
+/**
+ * Ayarlar > Lead puanlama. Ağırlığı 0 olan kriter hesaba katılmaz.
+ * Sektör / bölge / pazar hedefleri her lead aramasında ayrıca belirlenir (LeadSearch).
+ */
 export interface LeadScoring {
-  target_sectors: string[]
   w_sector: number
-  target_cities: string[]
   w_city: number
+  w_market: number
   w_exports: number
   target_modes: string[]
   w_mode: number
-  target_markets: string[]
-  w_market: number
   min_employees: number
   w_size: number
   w_contact: number
@@ -287,6 +343,7 @@ export interface Settings {
   quote_terms_en: string | null
   logo_data_url: string | null
   lead_scoring: LeadScoring | null
+  lead_config: LeadConfig | null
 }
 
 export interface Carrier {
