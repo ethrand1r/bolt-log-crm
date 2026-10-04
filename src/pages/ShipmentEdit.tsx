@@ -220,7 +220,7 @@ export default function ShipmentEdit() {
               return (
                 <div key={s.value} className="flex flex-1 items-center">
                   <button className="flex flex-col items-center gap-1 text-xs" title="Bu duruma getir" onClick={() => setStatus(s.value)} disabled={busy}>
-                    <span className={`flex h-7 w-7 items-center justify-center rounded-full border-2 ${done ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-surface text-slate-400'}`}>
+                    <span className={`flex h-7 w-7 items-center justify-center rounded-full border-2 ${done ? 'border-brand-600 bg-brand-600 text-on-brand' : 'border-slate-300 bg-surface text-slate-400'}`}>
                       {done ? <Check className="h-4 w-4" /> : i + 1}
                     </span>
                     <span className={`whitespace-nowrap ${done ? 'font-medium text-slate-800' : 'text-slate-500'}`}>{s.label}</span>

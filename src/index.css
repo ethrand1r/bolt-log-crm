@@ -1,36 +1,55 @@
 @import "tailwindcss";
 
+/*
+ * Marka paleti (logo): kömür #2E3238, sarı #F5B800, gri #6B727C
+ *  brand-600/700: ana renk (butonlar, bağlantılar), brand-500: sarı vurgu (odak, işaretler)
+ *  brand-50/100: açık sarı zemin (seçili satır, etiket), brand-900: yan menü
+ *  on-brand: brand-600 zemin üzerindeki yazı rengi
+ *  slate: logodaki griye göre nötr gri ölçeği
+ */
 @theme {
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-500: #2563eb;
-  --color-brand-600: #1d4ed8;
-  --color-brand-700: #1e40af;
-  --color-brand-900: #172554;
+  --color-brand-50: #fff8e1;
+  --color-brand-100: #ffecb0;
+  --color-brand-500: #f5b800;
+  --color-brand-600: #2e3238;
+  --color-brand-700: #1d2024;
+  --color-brand-900: #2e3238;
+  --color-on-brand: #ffffff;
   --color-surface: #ffffff;
+  --color-slate-50: #f6f7f8;
+  --color-slate-100: #eceef0;
+  --color-slate-200: #dde0e3;
+  --color-slate-300: #c5c9ce;
+  --color-slate-400: #9aa0a8;
+  --color-slate-500: #6b727c;
+  --color-slate-600: #555c65;
+  --color-slate-700: #41474e;
+  --color-slate-800: #2e3238;
+  --color-slate-900: #1d2024;
 }
 
 /* Karanlık mod: renk ölçekleri tersine çevrilir, tüm ekranlar otomatik uyum sağlar */
 @custom-variant dark (&:where(.dark, .dark *));
 .dark {
   color-scheme: dark;
-  --color-surface: #111a2e;
-  --color-slate-50: #0b1220;
-  --color-slate-100: #1a2438;
-  --color-slate-200: #29354b;
-  --color-slate-300: #3b4860;
-  --color-slate-400: #64748b;
-  --color-slate-500: #94a3b8;
-  --color-slate-600: #b8c3d3;
-  --color-slate-700: #d5dce6;
-  --color-slate-800: #e7ecf2;
-  --color-slate-900: #f5f7fa;
-  --color-brand-50: #16213f;
-  --color-brand-500: #60a5fa;
-  --color-brand-600: #3b82f6;
-  --color-brand-100: #1e2f5c;
-  --color-brand-700: #93b4fd;
-  --color-brand-900: #070d1c;
+  --color-surface: #25282d;
+  --color-slate-50: #1a1c20;
+  --color-slate-100: #2c3035;
+  --color-slate-200: #383c42;
+  --color-slate-300: #4a4f56;
+  --color-slate-400: #6b727c;
+  --color-slate-500: #9aa0a8;
+  --color-slate-600: #bfc4ca;
+  --color-slate-700: #d9dce0;
+  --color-slate-800: #eceef0;
+  --color-slate-900: #f7f8f9;
+  --color-brand-50: #3a321a;
+  --color-brand-100: #4d411b;
+  --color-brand-500: #f5b800;
+  --color-brand-600: #f5b800;
+  --color-brand-700: #ffd14a;
+  --color-brand-900: #141619;
+  --color-on-brand: #2e3238;
   --color-red-50: #3a1717;
   --color-red-200: #6b2626;
   --color-red-700: #fca5a5;
@@ -47,7 +66,7 @@ body { @apply bg-slate-50 text-slate-800 antialiased; }
 @utility btn {
   @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
 }
-@utility btn-primary { @apply btn bg-brand-600 text-white hover:bg-brand-700; }
+@utility btn-primary { @apply btn bg-brand-600 text-on-brand hover:bg-brand-700; }
 @utility btn-secondary { @apply btn border border-slate-300 bg-surface text-slate-700 hover:bg-slate-50; }
 @utility btn-danger { @apply btn border border-red-200 bg-surface text-red-600 hover:bg-red-50; }
 @utility btn-ghost { @apply btn text-slate-600 hover:bg-slate-100; }

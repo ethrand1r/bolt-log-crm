@@ -181,10 +181,10 @@ function Appearance() {
           <div className="text-xs text-slate-500">Bu tarayıcıda hatırlanır.</div>
         </div>
         <div className="flex rounded-md border border-slate-300 p-0.5 text-sm">
-          <button className={`flex items-center gap-1.5 rounded px-3 py-1 ${theme === 'light' ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`} onClick={() => choose('light')}>
+          <button className={`flex items-center gap-1.5 rounded px-3 py-1 ${theme === 'light' ? 'bg-brand-600 text-on-brand' : 'text-slate-600 hover:bg-slate-100'}`} onClick={() => choose('light')}>
             <Sun className="h-4 w-4" /> Açık
           </button>
-          <button className={`flex items-center gap-1.5 rounded px-3 py-1 ${theme === 'dark' ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`} onClick={() => choose('dark')}>
+          <button className={`flex items-center gap-1.5 rounded px-3 py-1 ${theme === 'dark' ? 'bg-brand-600 text-on-brand' : 'text-slate-600 hover:bg-slate-100'}`} onClick={() => choose('dark')}>
             <Moon className="h-4 w-4" /> Koyu
           </button>
         </div>

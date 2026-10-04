@@ -1,8 +1,15 @@
 import type { TableCell, TDocumentDefinitions } from 'pdfmake/interfaces'
 import type { ChargeLine, ChargeTemplate, Company, Contact, Quote, Settings } from './types'
 import { T, chargeRows, date, detailRows } from './quoteText'
+import brandLogo from '../assets/brand/logo-renkli.svg?raw'
 
-const BRAND = '#1e3a8a'
+// Marka paleti (logo)
+const BRAND = '#2E3238'
+const ACCENT = '#F5B800'
+const TINT = '#FFF8E1'
+const MUTED = '#6B727C'
+const SOFT = '#555C65'
+const LINE = '#DDE0E3'
 
 export async function buildQuotePdf(args: {
   quote: Quote
@@ -40,14 +47,14 @@ export async function buildQuotePdf(args: {
     [t.desc, t.unit, t.qty, t.price, t.total].map((h, i) => ({ text: h, style: 'th', alignment: i >= 2 ? 'right' : 'left' }) as TableCell),
     ...rows.map((r) => [
       { text: r.desc },
-      { text: r.unit, color: '#475569' },
+      { text: r.unit, color: SOFT },
       { text: r.qty, alignment: 'right' },
       { text: r.price, alignment: 'right' },
       { text: r.total, alignment: 'right', bold: true },
     ] as TableCell[]),
     ...totals.map((tot) => [
-      { text: t.grand, colSpan: 4, alignment: 'right', bold: true, fillColor: '#eff6ff' }, {}, {}, {},
-      { text: tot, alignment: 'right', bold: true, fillColor: '#eff6ff', color: BRAND },
+      { text: t.grand, colSpan: 4, alignment: 'right', bold: true, fillColor: TINT }, {}, {}, {},
+      { text: tot, alignment: 'right', bold: true, fillColor: TINT, color: BRAND },
     ] as TableCell[]),
   ]
 
@@ -61,36 +68,37 @@ export async function buildQuotePdf(args: {
     pageSize: 'A4',
     pageMargins: [40, 40, 40, 50],
     info: { title: `${quote.quote_no} - ${company?.name ?? ''}` },
-    defaultStyle: { font: 'Roboto', fontSize: 9, color: '#1e293b', lineHeight: 1.2 },
+    defaultStyle: { font: 'Roboto', fontSize: 9, color: BRAND, lineHeight: 1.2 },
     styles: {
       h: { fontSize: 10, bold: true, color: BRAND, margin: [0, 14, 0, 6] },
       th: { bold: true, color: '#ffffff', fillColor: BRAND, fontSize: 8.5 },
-      k: { color: '#64748b', fontSize: 8.5 },
+      k: { color: MUTED, fontSize: 8.5 },
       v: { bold: true },
     },
     footer: (page, pages) => ({
       columns: [
-        { text: settings.company_name ?? '', color: '#94a3b8', fontSize: 7.5 },
-        { text: `${t.page} ${page} / ${pages}`, alignment: 'right', color: '#94a3b8', fontSize: 7.5 },
+        { text: settings.company_name ?? '', color: MUTED, fontSize: 7.5 },
+        { text: `${t.page} ${page} / ${pages}`, alignment: 'right', color: MUTED, fontSize: 7.5 },
       ],
       margin: [40, 15, 40, 0],
     }),
     content: [
       {
         columns: [
+          // Ayarlar'dan logo yüklenmediyse marka logosu kullanılır
           settings.logo_data_url
             ? { image: settings.logo_data_url, fit: [150, 60] }
-            : { text: settings.company_name ?? 'BOLT LOG', fontSize: 20, bold: true, color: BRAND },
+            : { svg: brandLogo, width: 150, margin: [-12, -10, 0, -10] },
           {
             stack: [
-              settings.logo_data_url ? { text: settings.company_name ?? '', bold: true, fontSize: 10 } : '',
-              { text: companyInfo, color: '#475569', fontSize: 8 },
+              { text: settings.company_name ?? '', bold: true, fontSize: 10 },
+              { text: companyInfo, color: SOFT, fontSize: 8 },
             ],
             alignment: 'right',
           },
         ],
       },
-      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: BRAND }], margin: [0, 10, 0, 10] },
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2.5, lineColor: ACCENT }], margin: [0, 10, 0, 10] },
       {
         columns: [
           {
@@ -98,7 +106,7 @@ export async function buildQuotePdf(args: {
             stack: [
               { text: t.to, style: 'k' },
               { text: company?.name ?? '', bold: true, fontSize: 11 },
-              company?.address ? { text: company.address, color: '#475569' } : '',
+              company?.address ? { text: company.address, color: SOFT } : '',
               contact ? { text: `${t.attn}: ${contact.full_name}${contact.email ? ' - ' + contact.email : ''}`, margin: [0, 3, 0, 0] } : '',
             ],
           },
@@ -126,7 +134,7 @@ export async function buildQuotePdf(args: {
       {
         table: { widths: [85, '*', 85, '*'], body: detailBody },
         layout: {
-          hLineWidth: () => 0.5, vLineWidth: () => 0, hLineColor: () => '#e2e8f0',
+          hLineWidth: () => 0.5, vLineWidth: () => 0, hLineColor: () => LINE,
           paddingTop: () => 4, paddingBottom: () => 4,
         },
       },
@@ -135,15 +143,15 @@ export async function buildQuotePdf(args: {
       {
         table: { headerRows: 1, widths: ['*', 70, 40, 85, 90], body: chargeBody },
         layout: {
-          hLineWidth: () => 0.5, vLineWidth: () => 0, hLineColor: () => '#e2e8f0',
+          hLineWidth: () => 0.5, vLineWidth: () => 0, hLineColor: () => LINE,
           paddingTop: () => 5, paddingBottom: () => 5,
         },
       },
 
       quote.notes ? [{ text: t.notes, style: 'h' }, { text: quote.notes }] : '',
-      terms ? [{ text: t.terms, style: 'h' }, { text: terms, fontSize: 8, color: '#475569' }] : '',
+      terms ? [{ text: t.terms, style: 'h' }, { text: terms, fontSize: 8, color: SOFT }] : '',
       settings.bank_info ? [{ text: t.bank, style: 'h' }, { text: settings.bank_info, fontSize: 8 }] : '',
-      { text: t.thanks, margin: [0, 18, 0, 0], italics: true, color: '#475569' },
+      { text: t.thanks, margin: [0, 18, 0, 0], italics: true, color: SOFT },
     ],
   }
 

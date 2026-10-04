@@ -25,25 +25,25 @@ export function buildQuoteMail(args: {
   const subject = t.subject(quote.quote_no, route, mode)
 
   // --- HTML (e-posta istemcilerinde düzgün görünsün diye satır içi stiller)
-  const td = 'padding:6px 10px;border-bottom:1px solid #e2e8f0;font-size:13px;'
-  const th = 'padding:6px 10px;background:#1e3a8a;color:#fff;font-size:12px;text-align:left;'
+  const td = 'padding:6px 10px;border-bottom:1px solid #DDE0E3;font-size:13px;'
+  const th = 'padding:6px 10px;background:#2E3238;color:#fff;font-size:12px;text-align:left;'
   const html = `
-<div style="font-family:Arial,Helvetica,sans-serif;color:#1e293b;font-size:14px;line-height:1.5">
+<div style="font-family:Arial,Helvetica,sans-serif;color:#2E3238;font-size:14px;line-height:1.5">
 <p>${esc(greeting)}</p>
 <p>${esc(t.intro(route, mode))}</p>
-<p style="margin:16px 0 6px;font-weight:bold;color:#1e3a8a">${esc(t.details)} - ${esc(quote.quote_no)}</p>
+<p style="margin:16px 0 6px;font-weight:bold;color:#2E3238">${esc(t.details)} - ${esc(quote.quote_no)}</p>
 <table style="border-collapse:collapse;min-width:420px">
-${details.map(([k, v]) => `<tr><td style="${td}color:#64748b;width:180px">${esc(k)}</td><td style="${td}font-weight:bold">${esc(v)}</td></tr>`).join('\n')}
+${details.map(([k, v]) => `<tr><td style="${td}color:#6B727C;width:180px">${esc(k)}</td><td style="${td}font-weight:bold">${esc(v)}</td></tr>`).join('\n')}
 </table>
-<p style="margin:16px 0 6px;font-weight:bold;color:#1e3a8a">${esc(t.charges)}</p>
+<p style="margin:16px 0 6px;font-weight:bold;color:#2E3238">${esc(t.charges)}</p>
 <table style="border-collapse:collapse;min-width:420px">
 <tr><th style="${th}">${t.desc}</th><th style="${th}">${t.unit}</th><th style="${th}text-align:right">${t.qty}</th><th style="${th}text-align:right">${t.price}</th><th style="${th}text-align:right">${t.total}</th></tr>
-${rows.map((r) => `<tr><td style="${td}">${esc(r.desc)}</td><td style="${td}color:#475569">${esc(r.unit)}</td><td style="${td}text-align:right">${r.qty}</td><td style="${td}text-align:right">${r.price}</td><td style="${td}text-align:right;font-weight:bold">${r.total}</td></tr>`).join('\n')}
-${totals.map((x) => `<tr><td colspan="4" style="${td}text-align:right;font-weight:bold;background:#eff6ff">${t.grand}</td><td style="${td}text-align:right;font-weight:bold;color:#1e3a8a;background:#eff6ff">${x}</td></tr>`).join('\n')}
+${rows.map((r) => `<tr><td style="${td}">${esc(r.desc)}</td><td style="${td}color:#555C65">${esc(r.unit)}</td><td style="${td}text-align:right">${r.qty}</td><td style="${td}text-align:right">${r.price}</td><td style="${td}text-align:right;font-weight:bold">${r.total}</td></tr>`).join('\n')}
+${totals.map((x) => `<tr><td colspan="4" style="${td}text-align:right;font-weight:bold;background:#FFF8E1">${t.grand}</td><td style="${td}text-align:right;font-weight:bold;color:#2E3238;background:#FFF8E1">${x}</td></tr>`).join('\n')}
 </table>
 <p style="margin-top:16px"><b>${esc(t.validLine(date(quote.valid_until, lang)))}</b></p>
 ${quote.notes ? `<p><b>${esc(t.notes)}:</b><br>${esc(quote.notes)}</p>` : ''}
-${terms ? `<p style="font-size:12px;color:#475569"><b>${esc(t.terms)}:</b><br>${esc(terms)}</p>` : ''}
+${terms ? `<p style="font-size:12px;color:#555C65"><b>${esc(t.terms)}:</b><br>${esc(terms)}</p>` : ''}
 <p>${esc(t.closing)}</p>
 <p>${esc(t.regards)}<br>${signature.map(esc).join('<br>')}</p>
 </div>`.trim()

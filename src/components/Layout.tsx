@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { BarChart3, Building2, FileText, Kanban, LayoutDashboard, LogOut, Menu, Radar, Settings, Ship, Zap } from 'lucide-react'
+import { BarChart3, Building2, FileText, Kanban, LayoutDashboard, LogOut, Menu, Radar, Settings, Ship } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
+import logoOnDark from '../assets/brand/logo-koyu-zemin.svg'
+import iconColor from '../assets/brand/ikon-renkli.svg'
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -24,14 +26,9 @@ export default function Layout() {
       <aside
         className={`fixed inset-y-0 left-0 z-40 flex w-60 flex-col bg-brand-900 text-white/90 transition-transform lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}
       >
-        <div className="flex items-center gap-2 px-5 py-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-yellow-400 text-brand-900">
-            <Zap className="h-5 w-5" fill="currentColor" />
-          </div>
-          <div>
-            <div className="font-bold tracking-wide text-white">BOLT LOG</div>
-            <div className="text-[11px] text-white/55">CRM</div>
-          </div>
+        <div className="px-3 pt-3 pb-4">
+          <img src={logoOnDark} alt="Bolt Logistics" className="h-auto w-44" />
+          <div className="mt-0.5 pl-3 text-[10px] font-semibold tracking-[0.3em] text-white/45">CRM</div>
         </div>
         <nav className="flex-1 space-y-0.5 px-3">
           {NAV.map((n) => (
@@ -41,7 +38,7 @@ export default function Layout() {
               end={n.end}
               onClick={() => setOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-md px-3 py-2 text-sm transition ${isActive ? 'bg-white/10 font-medium text-white' : 'text-white/75 hover:bg-white/5 hover:text-white'}`
+                `flex items-center gap-3 rounded-md border-l-2 px-3 py-2 text-sm transition ${isActive ? 'border-brand-500 bg-white/10 font-medium text-white [&>svg]:text-brand-500' : 'border-transparent text-white/75 hover:bg-white/5 hover:text-white'}`
               }
             >
               <n.icon className="h-4 w-4" />
@@ -64,7 +61,8 @@ export default function Layout() {
           <button className="btn-ghost p-1.5" onClick={() => setOpen(true)} aria-label="Menü">
             <Menu className="h-5 w-5" />
           </button>
-          <span className="font-semibold">BOLT LOG CRM</span>
+          <img src={iconColor} alt="" className="h-7 w-7" />
+          <span className="font-semibold">BOLT LOGISTICS CRM</span>
         </header>
         <main className="mx-auto w-full max-w-[1400px] flex-1 p-4 lg:p-6">
           <Outlet />

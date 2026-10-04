@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import { Zap } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import logoColor from '../assets/brand/logo-renkli.svg'
+import logoOnDark from '../assets/brand/logo-koyu-zemin.svg'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -20,14 +21,10 @@ export default function Login() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-brand-900 p-4">
       <form onSubmit={submit} className="card w-full max-w-sm p-6">
-        <div className="mb-6 flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-yellow-400 text-brand-900">
-            <Zap className="h-5 w-5" fill="currentColor" />
-          </div>
-          <div>
-            <div className="font-bold text-slate-900">BOLT LOG CRM</div>
-            <div className="text-xs text-slate-500">Giriş yapın</div>
-          </div>
+        <div className="mb-6 text-center">
+          <img src={logoColor} alt="Bolt Logistics" className="mx-auto w-52 dark:hidden" />
+          <img src={logoOnDark} alt="Bolt Logistics" className="mx-auto hidden w-52 dark:block" />
+          <div className="mt-1 text-xs text-slate-500">CRM'e giriş yapın</div>
         </div>
         {error && <div className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
         <label className="label">E-posta</label>

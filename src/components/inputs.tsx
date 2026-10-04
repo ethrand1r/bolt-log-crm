@@ -104,7 +104,7 @@ export function CargoEditor({ value, mode, onChange }: {
           <div className="flex rounded-md border border-slate-300 p-0.5 text-sm">
             {[{ v: true, l: 'Stackable' }, { v: false, l: 'Non-stackable' }].map((o) => (
               <button key={o.l} type="button"
-                className={`flex-1 rounded px-2 py-1 ${(value.stackable ?? true) === o.v ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                className={`flex-1 rounded px-2 py-1 ${(value.stackable ?? true) === o.v ? 'bg-brand-600 text-on-brand' : 'text-slate-600 hover:bg-slate-100'}`}
                 onClick={() => onChange({ stackable: o.v })}>{o.l}</button>
             ))}
           </div>
