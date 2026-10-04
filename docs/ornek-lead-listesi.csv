@@ -1,0 +1,7 @@
+﻿Firma Adı;Web Sitesi;E-posta;Telefon;Şehir;Sektör;Yetkili;Görevi;Çalışan Sayısı;İhracat;Notlar
+Bursa Örme Tekstil San. Tic. A.Ş.;www.bursaorme.example;export@bursaorme.example;+90 224 111 11 11;Bursa;Tekstil & Hazır Giyim;Ayşe Yılmaz;Dış Ticaret Müdürü;180;Evet;Almanya ve Hollanda'ya örme kumaş
+Kocaeli Kauçuk Parça Ltd. Şti.;kocaelikaucuk.example;info@kocaelikaucuk.example;+90 262 222 22 22;Kocaeli;Plastik & Kauçuk;;;65;Evet;
+İzmir Zeytinyağı Gıda;https://www.izmirzeytin.example/tr;satis@izmirzeytin.example;;Izmir;Gıda;Mehmet Kaya;Lojistik Sorumlusu;40;Evet;Konteyner ve LCL sevkiyat
+Van Yerel Ticaret;;;+90 432 333 33 33;Van;Diğer;;;8;Hayır;Düşük puan örneği
+Konya Makine İmalat A.Ş.;;satis@konyamakine.example;;Konya;Makine & Ekipman;;;;;Demo veride varsa atlanır
+Bursa Örme Tekstil;bursaorme.example;;;Bursa;;;;;;Dosyada tekrar - atlanır
