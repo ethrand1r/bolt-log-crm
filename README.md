@@ -27,7 +27,7 @@ Proje klasöründe `.env` dosyası oluşturun (`.env.example` örneğine bakın)
 
 ```
 VITE_SUPABASE_URL=https://xxxx.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJ...
+VITE_SUPABASE_ANON_KEY=sb_publishable_...
 ```
 
 ```
