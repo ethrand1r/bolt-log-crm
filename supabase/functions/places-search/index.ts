@@ -25,7 +25,8 @@ interface Place {
   id: string
   displayName?: { text: string }
   formattedAddress?: string
-  addressComponents?: { longText: string; shortText: string; types: string[] }[]
+  // Google boş alanları yanıta hiç koymaz: types / longText eksik olabilir
+  addressComponents?: { longText?: string; shortText?: string; types?: string[] }[]
   websiteUri?: string
   internationalPhoneNumber?: string
   businessStatus?: string
@@ -59,7 +60,7 @@ async function searchPage(key: string, textQuery: string, pageToken?: string) {
 }
 
 function toItem(p: Place) {
-  const comp = (type: string) => p.addressComponents?.find((c) => c.types.includes(type))
+  const comp = (type: string) => p.addressComponents?.find((c) => c.types?.includes(type))
   return {
     place_id: p.id,
     name: p.displayName?.text ?? '',
@@ -115,17 +116,23 @@ Deno.serve(async (req) => {
       }
       const items: ReturnType<typeof toItem>[] = []
       let qRequests = 0
+      let step = 'Google araması'
       try {
         let token: string | undefined
         for (let page = 0; page < pages && usage < monthlyLimit; page++) {
+          step = 'Google araması'
           const r = await searchPage(key, q.query, token)
           qRequests++
+          step = 'istek sayacı'
           usage = check(await db.rpc('api_usage_add', { p_api: 'google_places', p_n: 1 })) as number
+          step = 'sonuçların okunması'
           items.push(...r.places.filter((p) => p.businessStatus !== 'CLOSED_PERMANENTLY').map(toItem).filter((i) => !i.country || i.country === 'TR'))
           token = r.next
           if (!token) break
         }
+        step = 'lead havuzuna ekleme'
         const n = check(await db.rpc('lead_discovered_insert', { p_query: q.id, p_items: items })) as number
+        step = 'sorgu durumunun kaydı'
         check(await db.from('lead_search_queries').update({
           status: 'done', found: items.length, inserted: n, requests: qRequests, error: null, ran_at: new Date().toISOString(),
         }).eq('id', q.id))
@@ -134,7 +141,8 @@ Deno.serve(async (req) => {
       } catch (e) {
         const fatal = e instanceof FatalError
         await db.from('lead_search_queries').update({
-          status: fatal ? 'pending' : 'error', requests: qRequests, error: (e as Error).message, ran_at: new Date().toISOString(),
+          status: fatal ? 'pending' : 'error', requests: qRequests,
+          error: fatal ? (e as Error).message : `[${step}] ${(e as Error).message}`, ran_at: new Date().toISOString(),
         }).eq('id', q.id)
         if (fatal) { stopped = (e as Error).message; break }
       }
