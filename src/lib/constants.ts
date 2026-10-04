@@ -122,7 +122,44 @@ export const ROAD_LOADS: Option[] = [
 ]
 export const VEHICLE_TYPES = ['Tenteli', 'Mega', 'Frigo', 'Kapalı kasa', 'Açık kasa', 'Lowbed', 'Konteyner taşıyıcı', 'Kamyon', 'Kamyonet / Panelvan']
 
-export const COMPANY_SOURCES = ['Referans', 'Web sitesi', 'LinkedIn', 'Soğuk arama', 'Fuar', 'E-posta kampanyası', 'Mevcut müşteri', 'Diğer']
+export const COMPANY_SOURCES = ['Referans', 'Web sitesi', 'LinkedIn', 'Soğuk arama', 'Fuar', 'İhracatçı listesi', 'Google Maps', 'E-posta kampanyası', 'Mevcut müşteri', 'Diğer']
+
+// ------------------------------------------------------------ Lead Generation
+export const LEAD_STATUSES: Option[] = [
+  { value: 'new', label: 'Yeni', color: 'bg-slate-100 text-slate-700' },
+  { value: 'contacted', label: 'Ulaşıldı', color: 'bg-sky-100 text-sky-800' },
+  { value: 'interested', label: 'İlgileniyor', color: 'bg-amber-100 text-amber-800' },
+  { value: 'qualified', label: 'Nitelikli', color: 'bg-emerald-100 text-emerald-800' },
+  { value: 'disqualified', label: 'Uygun değil', color: 'bg-red-100 text-red-700' },
+  { value: 'converted', label: 'Firmaya dönüştü', color: 'bg-violet-100 text-violet-800' },
+]
+/** Üzerinde çalışılan (kapanmamış) lead durumları */
+export const OPEN_LEAD_STATUSES = ['new', 'contacted', 'interested', 'qualified']
+
+export const LEAD_SOURCES = ['Fuar', 'İhracatçı listesi', 'LinkedIn', 'Google Maps', 'Web sitesi', 'Referans', 'Soğuk arama', 'Diğer']
+
+export const LEAD_ACTIVITY_TYPES: Option[] = [
+  { value: 'call', label: 'Telefon' },
+  { value: 'email', label: 'E-posta' },
+  { value: 'linkedin', label: 'LinkedIn' },
+  { value: 'meeting', label: 'Toplantı / Ziyaret' },
+  { value: 'note', label: 'Not' },
+]
+
+export const LEAD_OUTCOMES: Option[] = [
+  { value: 'no_answer', label: 'Ulaşılamadı', color: 'bg-slate-100 text-slate-700' },
+  { value: 'reached', label: 'Görüşüldü', color: 'bg-sky-100 text-sky-800' },
+  { value: 'interested', label: 'İlgileniyor', color: 'bg-emerald-100 text-emerald-800' },
+  { value: 'not_interested', label: 'İlgilenmiyor', color: 'bg-red-100 text-red-700' },
+  { value: 'callback', label: 'Tekrar aranacak', color: 'bg-amber-100 text-amber-800' },
+  { value: 'wrong_info', label: 'Bilgi hatalı', color: 'bg-slate-100 text-slate-700' },
+]
+
+export const LEAD_DIRECTIONS: Option[] = [
+  { value: 'export', label: 'İhracat' },
+  { value: 'import', label: 'İthalat' },
+  { value: 'both', label: 'İhracat + İthalat' },
+]
 
 export function opt(list: Option[], value: string | null | undefined): Option | undefined {
   return list.find((o) => o.value === value)

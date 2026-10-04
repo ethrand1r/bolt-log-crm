@@ -36,6 +36,31 @@ export function CountryPicker({ value, onChange, placeholder = 'Ülke ara…' }:
   )
 }
 
+// ------------------------------------------------------------ Ülke (çoklu, değer: ülke kodu)
+export function CountryMultiPicker({ value, onChange, placeholder = 'Ülke ara…' }: {
+  value: string[]
+  onChange: (codes: string[]) => void
+  placeholder?: string
+}) {
+  const [countries, loading] = useAsyncList(getCountries, [])
+  const options = useMemo(() => countries.map((c) => ({ value: c.code, label: c.name, keywords: `${c.code} ${c.tr}` })), [countries])
+  return <Combobox multiple options={options} loading={loading} value={value} onChange={onChange} placeholder={placeholder} />
+}
+
+// ------------------------------------------------------------ Şehir (çoklu, tek ülke)
+export function CityMultiPicker({ countryCode, value, onChange }: {
+  countryCode: string
+  value: string[]
+  onChange: (v: string[]) => void
+}) {
+  const [cities, loading] = useAsyncList(() => getCities(countryCode), [countryCode])
+  const options = useMemo(() => cities.map((c) => ({ value: c, label: c })), [cities])
+  return (
+    <Combobox multiple options={options} loading={loading} value={value} onChange={onChange} placeholder="Şehir ara…"
+      onCreate={(t) => { if (!value.includes(t)) onChange([...value, t]) }} createLabel={(t) => <>“{t}” ekle</>} />
+  )
+}
+
 // ------------------------------------------------------------ Şehir (ülkeye bağlı)
 export function CityPicker({ countryCode, value, onChange }: {
   countryCode: string | null

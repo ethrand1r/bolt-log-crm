@@ -194,6 +194,85 @@ export interface Activity {
   created_at: string
 }
 
+export interface ScoreItem {
+  key: string
+  label: string
+  weight: number
+  /** null: bilgi yok */
+  ok: boolean | null
+}
+
+export interface Lead {
+  id: string
+  name: string
+  sectors: string[] | null
+  country: string | null
+  country_code: string | null
+  city: string | null
+  address: string | null
+  website: string | null
+  /** Web sitesinden türetilir (mükerrer kontrolü), salt okunur */
+  domain: string | null
+  linkedin_url: string | null
+  phones: string[] | null
+  emails: string[] | null
+  contact_name: string | null
+  contact_title: string | null
+  contact_email: string | null
+  contact_phone: string | null
+  source: string | null
+  source_detail: string | null
+  exports: boolean | null
+  employees: number | null
+  modes: string[] | null
+  direction: string | null
+  target_markets: string[] | null
+  est_volume: string | null
+  status: string
+  disqualify_reason: string | null
+  score: number
+  score_items: ScoreItem[] | null
+  next_action_date: string | null
+  next_action_note: string | null
+  last_contact_at: string | null
+  company_id: string | null
+  converted_at: string | null
+  notes: string | null
+  tags: string[] | null
+  created_at: string
+  updated_at: string
+}
+
+export interface LeadActivity {
+  id: string
+  lead_id: string
+  type: string
+  outcome: string | null
+  note: string | null
+  activity_date: string
+  next_action_date: string | null
+  next_action_note: string | null
+  created_at: string
+}
+
+/** Ayarlar > Lead puanlama. Ağırlığı 0 olan kriter hesaba katılmaz. */
+export interface LeadScoring {
+  target_sectors: string[]
+  w_sector: number
+  target_cities: string[]
+  w_city: number
+  w_exports: number
+  target_modes: string[]
+  w_mode: number
+  target_markets: string[]
+  w_market: number
+  min_employees: number
+  w_size: number
+  w_contact: number
+  w_person: number
+  w_website: number
+}
+
 export interface Settings {
   id: number
   company_name: string | null
@@ -207,6 +286,7 @@ export interface Settings {
   quote_terms_tr: string | null
   quote_terms_en: string | null
   logo_data_url: string | null
+  lead_scoring: LeadScoring | null
 }
 
 export interface Carrier {

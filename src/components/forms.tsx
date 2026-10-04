@@ -6,7 +6,7 @@ import { clean, numOrNull } from '../lib/format'
 import { ErrorBox, Field, Modal, Select } from './ui'
 import { CityPicker, CompanyCombo, CountryPicker, MultiTextInput, SectorPicker } from './pickers'
 
-function useSave() {
+export function useSave() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   async function run(fn: () => Promise<void>) {
@@ -23,7 +23,7 @@ function useSave() {
   return { busy, error, run }
 }
 
-function Footer({ busy, onClose }: { busy: boolean; onClose: () => void }) {
+export function Footer({ busy, onClose }: { busy: boolean; onClose: () => void }) {
   return (
     <div className="mt-5 flex justify-end gap-2">
       <button type="button" className="btn-secondary" onClick={onClose}>Vazgeç</button>

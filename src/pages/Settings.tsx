@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Moon, Plus, Save, Sun, Trash2 } from 'lucide-react'
 import { getTheme, setTheme, type Theme } from '../lib/theme'
 import { supabase, q } from '../lib/supabase'
-import type { ChargeTemplate, Location, Settings } from '../lib/types'
-import { CHARGE_UNITS, CURRENCIES } from '../lib/constants'
+import type { ChargeTemplate, LeadScoring, Location, Settings } from '../lib/types'
+import { CHARGE_UNITS, CURRENCIES, MODES } from '../lib/constants'
+import { CityMultiPicker, CountryMultiPicker, SectorPicker } from '../components/pickers'
+import { ToggleChips } from '../components/leadForms'
 import { clean } from '../lib/format'
 import { getSettings, invalidateRefData } from '../lib/refdata'
 import { ErrorBox, Field, PageHeader, Section, Select, Spinner, useLoad } from '../components/ui'
@@ -27,7 +29,8 @@ function CompanySettings() {
   async function save() {
     setError(null)
     try {
-      const { id: _id, ...rest } = f!
+      // Lead puanlama ayrı bölümde kaydedilir; burada eski değeriyle ezilmemeli
+      const { id: _id, lead_scoring: _ls, ...rest } = f!
       await q(supabase.from('settings').update(clean(rest)).eq('id', 1))
       setMsg('Kaydedildi ✓')
     } catch (e) {
@@ -65,6 +68,78 @@ function CompanySettings() {
           </div>
         </div>
       </div>
+    </Section>
+  )
+}
+
+const SCORING_DEFAULTS: LeadScoring = {
+  target_sectors: [], w_sector: 0, target_cities: [], w_city: 0, w_exports: 0, target_modes: [], w_mode: 0,
+  target_markets: [], w_market: 0, min_employees: 0, w_size: 0, w_contact: 0, w_person: 0, w_website: 0,
+}
+
+function LeadScoringSettings() {
+  const [f, setF] = useState<LeadScoring | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [msg, setMsg] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    getSettings().then((s) => setF({ ...SCORING_DEFAULTS, ...s.lead_scoring })).catch((e) => setError(e.message))
+  }, [])
+  if (!f) return error ? <ErrorBox error={error} /> : <Spinner />
+  const set = <K extends keyof LeadScoring>(k: K, v: LeadScoring[K]) => { setF({ ...f, [k]: v }); setMsg(null) }
+
+  async function save() {
+    setError(null)
+    setBusy(true)
+    try {
+      await q(supabase.from('settings').update({ lead_scoring: f }).eq('id', 1))
+      setMsg('Kaydedildi, tüm lead’ler yeniden puanlandı ✓')
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const total = f.w_sector + f.w_city + f.w_exports + f.w_mode + f.w_market + f.w_size + f.w_contact + f.w_person + f.w_website
+  const weight = (k: keyof LeadScoring) => (
+    <input className="input w-20! text-right" type="number" min={0} max={100} value={f[k] as number}
+      onChange={(e) => set(k, Math.max(0, Number(e.target.value) || 0) as never)} title="Ağırlık (0 = kapalı)" />
+  )
+  // Bileşen değil düz fonksiyon: render içinde tanımlı bileşen her tuşta yeniden oluşup odağı kaybettirir
+  const row = (title: string, hint: string | null, w: keyof LeadScoring, children?: ReactNode) => (
+    <div key={w} className={`grid gap-2 border-b border-slate-100 py-3 last:border-0 sm:grid-cols-[14rem_1fr_5rem] sm:items-start ${(f[w] as number) === 0 ? 'opacity-60' : ''}`}>
+      <div>
+        <div className="text-sm font-medium text-slate-800">{title}</div>
+        {hint && <div className="text-xs text-slate-500">{hint}</div>}
+      </div>
+      <div>{children}</div>
+      <div className="sm:justify-self-end">{weight(w)}</div>
+    </div>
+  )
+
+  return (
+    <Section title="Lead puanlama" actions={
+      <div className="flex items-center gap-2">
+        {msg && <span className="text-xs text-emerald-600">{msg}</span>}
+        <button className="btn-primary" disabled={busy} onClick={save}><Save className="h-4 w-4" /> {busy ? 'Kaydediliyor…' : 'Kaydet'}</button>
+      </div>
+    }>
+      <ErrorBox error={error} />
+      <p className="mb-2 text-sm text-slate-600">
+        Her lead, sağladığı kriterlerin ağırlığı oranında 0-100 arası puan alır. Ağırlığı 0 olan veya hedef listesi boş olan kriter hesaba katılmaz.
+        Bilgisi girilmemiş kriter puan getirmez. Kaydettiğinizde tüm lead’ler yeniden puanlanır.
+      </p>
+      <div className="mb-1 flex justify-end text-xs text-slate-500">Ağırlık · toplam {total}</div>
+      {row('Hedef sektörler', 'Lead’in sektörlerinden biri listede ise', 'w_sector', <SectorPicker value={f.target_sectors} onChange={(v) => set('target_sectors', v)} />)}
+      {row('Hedef bölgeler', 'Lead’in şehri listede ise', 'w_city', <CityMultiPicker countryCode="TR" value={f.target_cities} onChange={(v) => set('target_cities', v)} />)}
+      {row('İhracat yapıyor', '“İhracat yapıyor mu?” Evet ise', 'w_exports')}
+      {row('Taşıma modu', 'Lead’in muhtemel modlarından biri seçili ise', 'w_mode', <ToggleChips options={MODES} value={f.target_modes} onChange={(v) => set('target_modes', v)} />)}
+      {row('Hedef pazarlar', 'Satış yaptığı ülkelerden biri listede ise', 'w_market', <CountryMultiPicker value={f.target_markets} onChange={(v) => set('target_markets', v)} placeholder="ör. Almanya, ABD…" />)}
+      {row('Firma büyüklüğü', 'Çalışan sayısı en az', 'w_size', <input className="input w-28!" type="number" min={0} value={f.min_employees} onChange={(e) => set('min_employees', Math.max(0, Number(e.target.value) || 0))} />)}
+      {row('İletişim bilgisi var', 'Firma veya kişi e-posta/telefonu', 'w_contact')}
+      {row('İrtibat kişisi belli', 'Ad soyad girilmiş', 'w_person')}
+      {row('Web sitesi var', null, 'w_website')}
     </Section>
   )
 }
@@ -200,6 +275,7 @@ export default function SettingsPage() {
       <div className="space-y-4">
         <Appearance />
         <CompanySettings />
+        <LeadScoringSettings />
         <div className="grid gap-4 xl:grid-cols-2">
           <Templates />
           <Locations />

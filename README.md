@@ -7,7 +7,8 @@
    1. `supabase/schema.sql`: temel tablolar
    2. `supabase/002_update.sql`: sektörler, çoklu telefon/e-posta, EORI, karayolu, ölçüler, fatura durumları
    3. `supabase/003_update.sql`: teklif numarası (SEA/AIR/ROAD), LDM, hava aktarma noktaları, İngilizce ülke adları
-   4. `supabase/demo_data.sql`: (isteğe bağlı) 10 örnek firma + 20 örnek fırsat.
+   4. `supabase/004_leads.sql`: Lead Generation (lead havuzu, temas logu, otomatik puanlama, firmaya dönüştürme)
+   5. `supabase/demo_data.sql`: (isteğe bağlı) 10 örnek firma + 20 örnek fırsat.
       Silmek için: `delete from companies where 'demo' = any(tags);`
 3. **Authentication > Users > Add user > Create new user** ile kendi e-posta ve şifrenizi oluşturun ("Auto confirm user" işaretli olsun).
 4. **Authentication > Sign In / Providers** altında **"Allow new users to sign up"** seçeneğini **kapatın**.
