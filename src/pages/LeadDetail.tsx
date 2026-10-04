@@ -6,7 +6,7 @@ import type { Lead, LeadActivity } from '../lib/types'
 import { LEAD_ACTIVITY_TYPES, LEAD_DIRECTIONS, LEAD_OUTCOMES, LEAD_STATUSES, MODES, label } from '../lib/constants'
 import { fmtDate, fmtDateTime, todayISO } from '../lib/format'
 import { getCountries } from '../lib/refdata'
-import { getLeadSearches } from '../lib/leads'
+import { getLeadSearches, mapsUrl } from '../lib/leads'
 import { Badge, Empty, ErrorBox, PageHeader, Section, Spinner, useLoad } from '../components/ui'
 import { ConvertLeadModal, LeadActivityForm, LeadForm } from '../components/leadForms'
 import { ScorePill } from './LeadGeneration'
@@ -75,7 +75,8 @@ export default function LeadDetail() {
   const info: [string, React.ReactNode][] = [
     ['Arama', l.search_id && searchName && <Link to={`/lead-generation?arama=${l.search_id}`} className="text-brand-600 hover:underline">{searchName}</Link>],
     ['Web', l.website && <a href={href(l.website)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-brand-600 hover:underline">{l.website}<ExternalLink className="h-3 w-3" /></a>],
-    ['LinkedIn', l.linkedin_url && <a href={href(l.linkedin_url)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-brand-600 hover:underline">Profil<ExternalLink className="h-3 w-3" /></a>],
+    ['Google', l.google_place_id && <a href={mapsUrl(l.google_place_id)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-brand-600 hover:underline">Haritada gör<ExternalLink className="h-3 w-3" /></a>],
+    ['LinkedIn', l.linkedin_url &&<a href={href(l.linkedin_url)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-brand-600 hover:underline">Profil<ExternalLink className="h-3 w-3" /></a>],
     ['E-posta', (l.emails ?? []).filter(Boolean).map((e) => <a key={e} href={`mailto:${e}`} className="block hover:text-brand-600">{e}</a>)],
     ['Telefon', (l.phones ?? []).filter(Boolean).map((p) => <a key={p} href={`tel:${p}`} className="block hover:text-brand-600">{p}</a>)],
     ['Adres', l.address],

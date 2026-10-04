@@ -122,9 +122,11 @@ export default function LeadSearchEdit() {
         .map(({ auto: _auto, ...s }) => ({ ...s, cities: sel[flow].cities[s.sector] ?? s.cities }))
       const criteria: SearchCriteria = { year: trade.year, prev_year: trade.prevYear, export: pick('X'), import: pick('M') }
       const payload = { name: name.trim(), country_code: country, country: countryNames.get(country) ?? country, criteria, notes: notes.trim() || null }
-      if (search) await q(supabase.from('lead_searches').update(payload).eq('id', search.id))
-      else await q(supabase.from('lead_searches').insert(payload))
-      nav('/lead-generation/aramalar')
+      let saved = search?.id
+      if (saved) await q(supabase.from('lead_searches').update(payload).eq('id', saved))
+      else saved = (await q<{ id: string }>(supabase.from('lead_searches').insert(payload).select('id').single())).id
+      // Onaylanan kriterlerle tarama ekranına geçilir (plan orada güncellenir)
+      nav(`/lead-generation/aramalar/${saved}/tarama`)
     } catch (e) {
       setError((e as Error).message)
       setSaving(false)
@@ -264,10 +266,10 @@ export default function LeadSearchEdit() {
 
           <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 bg-surface px-4 py-3 lg:-mx-6 lg:px-6">
             <span className="mr-auto text-xs text-slate-500">
-              Otomatik firma taraması (Google) bir sonraki adımda bu ekrana “Aramayı başlat” olarak eklenecek.
+              Kaydedince Google taraması ekranına geçilir; tarama oradan başlatılır.
             </span>
             <Link to="/lead-generation/aramalar" className="btn-secondary">Vazgeç</Link>
-            <button className="btn-primary" disabled={saving} onClick={save}><Save className="h-4 w-4" /> {saving ? 'Kaydediliyor…' : 'Kriterleri onayla ve kaydet'}</button>
+            <button className="btn-primary" disabled={saving} onClick={save}><Save className="h-4 w-4" /> {saving ? 'Kaydediliyor…' : 'Kriterleri onayla, taramaya geç'}</button>
           </div>
         </>
       )}

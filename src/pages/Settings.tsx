@@ -151,22 +151,34 @@ function LeadScoringSettings() {
   )
 }
 
+interface SectorRegion { sector: string; cities: string[]; export_keywords: string[]; import_keywords: string[] }
+
+/** Virgülle ayrılmış liste; yazarken bozulmasın diye çıkışta (blur) kaydedilir */
+function ListInput({ value, onChange, placeholder }: { value: string[]; onChange: (v: string[]) => void; placeholder?: string }) {
+  const [text, setText] = useState(value.join(', '))
+  useEffect(() => setText(value.join(', ')), [value])
+  return (
+    <input className="input" value={text} placeholder={placeholder} onChange={(e) => setText(e.target.value)}
+      onBlur={() => onChange(text.split(',').map((x) => x.trim()).filter(Boolean))} />
+  )
+}
+
 function LeadSearchSettings() {
   const [cfg, setCfg] = useState<LeadConfig | null>(null)
-  const [regions, setRegions] = useState<{ sector: string; cities: string[] }[]>([])
+  const [regions, setRegions] = useState<SectorRegion[]>([])
   const [dirty, setDirty] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   useEffect(() => {
-    Promise.all([getSettings(), q<{ sector: string; cities: string[] }[]>(supabase.from('sector_regions').select('sector,cities').order('sector'))])
+    Promise.all([getSettings(), q<SectorRegion[]>(supabase.from('sector_regions').select('sector,cities,export_keywords,import_keywords').order('sector'))])
       .then(([s, r]) => { setCfg({ ...DEFAULT_LEAD_CONFIG, ...s.lead_config }); setRegions(r) })
       .catch((e) => setError(e.message))
   }, [])
   if (!cfg) return error ? <ErrorBox error={error} /> : <Spinner />
   const set = <K extends keyof LeadConfig>(k: K, v: LeadConfig[K]) => { setCfg({ ...cfg, [k]: v }); setMsg(null) }
-  const setRegion = (sector: string, cities: string[]) => {
-    setRegions(regions.map((r) => (r.sector === sector ? { ...r, cities } : r)))
+  const setRegion = (sector: string, patch: Partial<SectorRegion>) => {
+    setRegions(regions.map((r) => (r.sector === sector ? { ...r, ...patch } : r)))
     setDirty(new Set(dirty).add(sector))
     setMsg(null)
   }
@@ -188,7 +200,7 @@ function LeadSearchSettings() {
   }
 
   return (
-    <Section title="Lead araması (hedef ülke analizi)" actions={
+    <Section title="Lead araması (hedef ülke analizi ve Google taraması)" actions={
       <div className="flex items-center gap-2">
         {msg && <span className="text-xs text-emerald-600">{msg}</span>}
         <button className="btn-primary" disabled={busy} onClick={save}><Save className="h-4 w-4" /> {busy ? 'Kaydediliyor…' : 'Kaydet'}</button>
@@ -210,16 +222,31 @@ function LeadSearchSettings() {
           <span className="label">Analize alınmayan sektörler</span>
           <SectorPicker value={cfg.excluded_sectors} onChange={(v) => set('excluded_sectors', v)} />
         </div>
+        <Field label="Google taraması: sorgu başına sayfa (1 sayfa = 20 firma = 1 istek)">
+          <Select options={[{ value: '1', label: '1 sayfa (20 firma)' }, { value: '2', label: '2 sayfa (40 firma)' }, { value: '3', label: '3 sayfa (60 firma)' }]}
+            value={String(cfg.places_pages)} onChange={(v) => set('places_pages', Number(v))} />
+        </Field>
+        <Field label="Google taraması: aylık istek sınırı (ilk 1.000 istek ücretsiz)">
+          <input className="input" type="number" min={0} value={cfg.places_monthly_limit} onChange={(e) => set('places_monthly_limit', Math.max(0, Number(e.target.value) || 0))} />
+        </Field>
       </div>
-      <h4 className="mt-5 mb-1 text-xs font-semibold tracking-wide text-slate-500 uppercase">Sektörlerin yoğunlaştığı iller (ilk 5)</h4>
-      <p className="mb-2 text-xs text-slate-500">Yeni aramada her sektörün varsayılan hedef bölgeleri buradan gelir. Arama ekranında ayrıca değiştirilebilir.</p>
-      <div className="max-h-[28rem] overflow-y-auto">
+      <h4 className="mt-5 mb-1 text-xs font-semibold tracking-wide text-slate-500 uppercase">Sektör profilleri</h4>
+      <p className="mb-2 text-xs text-slate-500">
+        İller: yeni aramada sektörün varsayılan hedef bölgeleri (arama ekranında ayrıca değiştirilebilir).
+        Anahtar kelimeler: Google'da “&lt;anahtar kelime&gt; &lt;il&gt;” olarak aranır, virgülle birden fazla yazılabilir (her biri ayrı sorgu = ayrı istek).
+      </p>
+      <div className="max-h-[32rem] overflow-y-auto">
         <table className="table-base">
+          <thead>
+            <tr><th>Sektör</th><th className="min-w-64">İller (ilk 5)</th><th className="min-w-48">İhracat anahtar kelimesi</th><th className="min-w-48">İthalat anahtar kelimesi</th></tr>
+          </thead>
           <tbody>
             {regions.map((r) => (
               <tr key={r.sector}>
-                <td className="w-56 text-sm font-medium">{r.sector}</td>
-                <td><CityMultiPicker countryCode="TR" value={r.cities} onChange={(v) => setRegion(r.sector, v)} /></td>
+                <td className="w-48 text-sm font-medium">{r.sector}</td>
+                <td><CityMultiPicker countryCode="TR" value={r.cities} onChange={(v) => setRegion(r.sector, { cities: v })} /></td>
+                <td><ListInput value={r.export_keywords} onChange={(v) => setRegion(r.sector, { export_keywords: v })} placeholder="ör. mobilya fabrikası" /></td>
+                <td><ListInput value={r.import_keywords} onChange={(v) => setRegion(r.sector, { import_keywords: v })} placeholder="ör. mobilya ithalatçısı" /></td>
               </tr>
             ))}
           </tbody>

@@ -10,7 +10,8 @@
    4. `supabase/004_leads.sql`: Lead Generation (lead havuzu, temas logu, otomatik puanlama, firmaya dönüştürme)
    5. `supabase/005_lead_searches.sql`: Ülke bazlı lead aramaları (ticaret verisinden sektör + bölge), dönüştürmede Müşteri + Kazanıldı
    6. `supabase/006_lead_modes.sql`: Aramaya bağlı lead'lerde muhtemel taşıma modu otomatik
-   7. `supabase/demo_data.sql`: (isteğe bağlı) 10 örnek firma + 20 örnek fırsat.
+   7. `supabase/007_places_discovery.sql`: Google ile otomatik firma taraması (sorgu planı, mükerrer kontrolü, aylık istek sayacı)
+   8. `supabase/demo_data.sql`: (isteğe bağlı) 10 örnek firma + 20 örnek fırsat.
       Silmek için: `delete from companies where 'demo' = any(tags);`
 3. **Authentication > Users > Add user > Create new user** ile kendi e-posta ve şifrenizi oluşturun ("Auto confirm user" işaretli olsun).
 4. **Authentication > Sign In / Providers** altında **"Allow new users to sign up"** seçeneğini **kapatın**.
@@ -20,6 +21,14 @@
 6. **Edge Function (lead araması için ticaret verisi):** **Edge Functions > Deploy a new function > Via Editor**.
    Fonksiyon adı tam olarak `trade-stats` olmalı. Editördeki örnek kodu silip `supabase/functions/trade-stats/index.ts`
    dosyasının tamamını yapıştırın ve **Deploy** deyin. Anahtar gerekmez (UN Comtrade'in ücretsiz servisi kullanılır).
+7. **Edge Function (Google ile firma taraması):** aynı şekilde `places-search` adıyla `supabase/functions/places-search/index.ts` yüklenir.
+   Google anahtarı için:
+   1. https://console.cloud.google.com adresinde bir proje açın, faturalandırmayı (kredi kartı) bağlayın.
+      Ayda 1.000 tarama isteği ücretsizdir; uygulama varsayılan olarak 900 istekte durur (Ayarlar > Lead araması).
+   2. **APIs & Services > Library** altında **Places API (New)** etkinleştirin.
+   3. **APIs & Services > Credentials > Create credentials > API key**. Anahtarı düzenleyip **API restrictions** altında
+      sadece **Places API (New)** seçin (anahtar sadece sunucuda durur, tarayıcıya gitmez).
+   4. Supabase **Edge Functions > Secrets** altına `GOOGLE_PLACES_KEY` adıyla anahtarı ekleyin.
 
 ## 2. Bilgisayarda çalıştırma
 

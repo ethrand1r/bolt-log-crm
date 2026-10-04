@@ -1,4 +1,4 @@
-import { supabase, q } from './supabase'
+import { supabase, q, invokeFn } from './supabase'
 import { COMTRADE_PARTNERS } from '../data/comtradePartners'
 import type { LeadConfig, SearchSector, TradeData } from './types'
 
@@ -116,6 +116,8 @@ export const DEFAULT_LEAD_CONFIG: LeadConfig = {
   max_sectors: 10,
   always_cities: ['Istanbul', 'Ankara', 'Izmir'],
   excluded_sectors: ['Enerji & Yenilenebilir', 'Diğer'],
+  places_pages: 1,
+  places_monthly_limit: 900,
 }
 
 // ------------------------------------------------------------ Veri çekme
@@ -132,16 +134,7 @@ export async function getTradeData(countryCode: string, force = false): Promise<
     const c = cached[0]
     if (c && Date.now() - new Date(c.fetched_at).getTime() < CACHE_DAYS * 86_400_000) return { ...c.data, fetched_at: c.fetched_at }
   }
-  const { data, error } = await supabase.functions.invoke<TradeData & { error?: string }>('trade-stats', { body: { partner } })
-  if (error) {
-    // Fonksiyonun döndürdüğü hata mesajını göster
-    const ctx = (error as { context?: Response }).context
-    const body = ctx ? await ctx.json().catch(() => null) : null
-    if (body?.error) throw new Error(body.error)
-    if (/not found|404/i.test(error.message)) throw new Error('“trade-stats” Edge Function bulunamadı. Supabase’e yüklendiğinden emin olun.')
-    throw new Error(error.message)
-  }
-  if (!data || data.error) throw new Error(data?.error ?? 'Ticaret verisi alınamadı.')
+  const data = await invokeFn<TradeData>('trade-stats', { partner })
   const fetched_at = new Date().toISOString()
   const trade: TradeData = { year: data.year, prevYear: data.prevYear, rows: data.rows }
   await q(supabase.from('trade_cache').upsert({ country_code: countryCode, data: trade, fetched_at }))

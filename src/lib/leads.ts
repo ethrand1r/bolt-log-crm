@@ -1,10 +1,42 @@
-import { supabase, q } from './supabase'
+import { supabase, q, invokeFn } from './supabase'
 import { norm } from '../components/Combobox'
-import type { LeadSearch } from './types'
+import type { LeadSearch, LeadSearchQuery, PlacesBatchResult } from './types'
 
 // ------------------------------------------------------------ Aramalar
 export function getLeadSearches(): Promise<LeadSearch[]> {
   return q<LeadSearch[]>(supabase.from('lead_searches').select('*').order('created_at', { ascending: false }))
+}
+
+// ------------------------------------------------------------ Google taraması
+/** Aramanın kriterlerinden sorgu planını çıkarır / günceller (yön × sektör × il × anahtar kelime). */
+export function planSearch(searchId: string): Promise<{ total: number; pending: number; done: number; error: number }> {
+  return q(supabase.rpc('lead_search_plan', { p_search: searchId }))
+}
+
+export function getSearchQueries(searchId: string): Promise<LeadSearchQuery[]> {
+  return fetchAllWhere<LeadSearchQuery>('lead_search_queries', '*', 'search_id', searchId)
+}
+
+/** Bekleyen sorgulardan bir partiyi Google'da çalıştırır. */
+export function runPlacesBatch(searchId: string, limit = 5): Promise<PlacesBatchResult> {
+  return invokeFn<PlacesBatchResult>('places-search', { search_id: searchId, limit })
+}
+
+/** Bu ayki Google isteği sayısı */
+export async function getPlacesUsage(): Promise<number> {
+  const month = new Date().toISOString().slice(0, 7) + '-01'
+  const rows = await q<{ requests: number }[]>(supabase.from('api_usage').select('requests').eq('month', month).eq('api', 'google_places'))
+  return rows[0]?.requests ?? 0
+}
+
+/** Sorguları yeniden çalıştırılmak üzere bekleyene alır. */
+export function requeueQueries(ids: string[]): Promise<unknown> {
+  return q(supabase.from('lead_search_queries').update({ status: 'pending', error: null }).in('id', ids))
+}
+
+/** Google kaydının haritadaki adresi */
+export function mapsUrl(placeId: string): string {
+  return `https://www.google.com/maps/place/?q=place_id:${placeId}`
 }
 
 // ------------------------------------------------------------ Puan
@@ -66,11 +98,18 @@ export function findDup(idx: DupIndex, name: string, website: string | null | un
 }
 
 /** Supabase tek sorguda en fazla 1000 satır döner; tümünü sayfa sayfa çeker. */
-export async function fetchAll<T>(table: string, columns: string): Promise<T[]> {
+export function fetchAll<T>(table: string, columns: string): Promise<T[]> {
+  return fetchAllWhere<T>(table, columns)
+}
+
+/** fetchAll, isteğe bağlı tek eşitlik filtresiyle */
+export async function fetchAllWhere<T>(table: string, columns: string, col?: string, value?: string): Promise<T[]> {
   const out: T[] = []
   for (let from = 0; ; from += 1000) {
+    let query = supabase.from(table).select(columns)
+    if (col) query = query.eq(col, value)
     // Sütun listesi çalışma zamanında verildiği için satır tipi çıkarılamaz
-    const rows = await q<T[]>(supabase.from(table).select(columns).range(from, from + 999) as unknown as PromiseLike<{ data: T[]; error: { message: string } | null }>)
+    const rows = await q<T[]>(query.order('id').range(from, from + 999) as unknown as PromiseLike<{ data: T[]; error: { message: string } | null }>)
     out.push(...rows)
     if (rows.length < 1000) return out
   }

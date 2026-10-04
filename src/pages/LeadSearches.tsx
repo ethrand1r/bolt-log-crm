@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowDownLeft, ArrowUpRight, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, Pencil, Plus, Radar, Trash2 } from 'lucide-react'
 import { supabase, q } from '../lib/supabase'
 import type { LeadSearch } from '../lib/types'
 import { OPEN_LEAD_STATUSES } from '../lib/constants'
@@ -86,6 +86,11 @@ export default function LeadSearches() {
                     <div className="text-xs text-slate-400">{s.country} · {s.criteria.year} verisi · {fmtDate(s.created_at)}{s.status === 'archived' && ' · Arşivlendi'}</div>
                   </div>
                   <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                    {s.status === 'active' && (
+                      <button className="btn-ghost px-1.5 py-1 text-xs text-brand-600" onClick={() => nav(`/lead-generation/aramalar/${s.id}/tarama`)} title="Google'da firma tara">
+                        <Radar className="h-3.5 w-3.5" /> Tara
+                      </button>
+                    )}
                     <button className="btn-ghost p-1" onClick={() => nav(`/lead-generation/aramalar/${s.id}`)} aria-label="Kriterleri düzenle"><Pencil className="h-3.5 w-3.5" /></button>
                     <button className="btn-ghost px-1.5 py-1 text-xs" onClick={() => archive(s)}>{s.status === 'archived' ? 'Geri al' : 'Arşivle'}</button>
                     <button className="btn-ghost p-1 text-red-500" onClick={() => del(s)} aria-label="Sil"><Trash2 className="h-3.5 w-3.5" /></button>

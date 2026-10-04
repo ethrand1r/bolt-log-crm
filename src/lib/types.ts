@@ -238,6 +238,8 @@ export interface Lead {
   company_id: string | null
   converted_at: string | null
   search_id: string | null
+  /** Google Places taramasıyla bulunduysa */
+  google_place_id: string | null
   notes: string | null
   tags: string[] | null
   created_at: string
@@ -297,6 +299,40 @@ export interface LeadConfig {
   always_cities: string[]
   /** Analize hiç alınmayan sektörler (ör. boru hattı / dökme enerji) */
   excluded_sectors: string[]
+  /** Google taramasında sorgu başına sayfa (1 sayfa = en fazla 20 firma, 1 istek) */
+  places_pages: number
+  /** Aylık Google isteği sınırı; aşılınca tarama durur */
+  places_monthly_limit: number
+}
+
+/** Bir aramanın tarama planındaki tek Google sorgusu: "<anahtar kelime> <il>" */
+export interface LeadSearchQuery {
+  id: string
+  search_id: string
+  direction: 'export' | 'import'
+  sector: string
+  city: string
+  keyword: string
+  query: string
+  status: 'pending' | 'done' | 'error'
+  found: number
+  inserted: number
+  requests: number
+  error: string | null
+  ran_at: string | null
+  created_at: string
+}
+
+/** places-search Edge Function'ın bir parti sonucu */
+export interface PlacesBatchResult {
+  processed: number
+  found: number
+  inserted: number
+  requests: number
+  remaining: number
+  usage: number
+  limit: number
+  stopped: string | null
 }
 
 export interface LeadActivity {

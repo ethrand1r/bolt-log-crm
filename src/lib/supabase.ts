@@ -13,3 +13,17 @@ export async function q<T>(p: PromiseLike<{ data: T | null; error: { message: st
   if (error) throw new Error(error.message)
   return data as T
 }
+
+/** Edge Function çağırır; fonksiyonun döndürdüğü { error } mesajını olduğu gibi fırlatır. */
+export async function invokeFn<T>(name: string, body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke<T & { error?: string }>(name, { body })
+  if (error) {
+    const ctx = (error as { context?: Response }).context
+    const res = ctx ? await ctx.json().catch(() => null) : null
+    if (res?.error) throw new Error(res.error)
+    if (/not found|404/i.test(error.message)) throw new Error(`“${name}” Edge Function bulunamadı. Supabase’e yüklendiğinden emin olun.`)
+    throw new Error(error.message)
+  }
+  if (!data || data.error) throw new Error(data?.error ?? `${name} yanıt vermedi.`)
+  return data
+}
