@@ -29,7 +29,11 @@ export default function LeadSearchRun() {
   const [msg, setMsg] = useState<string | null>(null)
   const stopRef = useRef(false)
 
-  const reloadQueries = async () => setQueries(await getSearchQueries(id))
+  const reloadQueries = async () => {
+    const list = await getSearchQueries(id)
+    setQueries(list)
+    return list
+  }
 
   // Açılışta plan kriterlere göre güncellenir (kriterler düzenlendiyse yeni sorgular eklenir)
   useEffect(() => {
@@ -81,6 +85,8 @@ export default function LeadSearchRun() {
     setMsg(null)
     const total = { processed: 0, found: 0, inserted: 0 }
     setProgress(total)
+    const startedAt = new Date(Date.now() - 60_000).toISOString()
+    let latest: LeadSearchQuery[] = queries
     try {
       while (!stopRef.current) {
         const r = await runPlacesBatch(id, BATCH)
@@ -89,11 +95,15 @@ export default function LeadSearchRun() {
         total.inserted += r.inserted
         setProgress({ ...total })
         setUsage(r.usage)
-        await reloadQueries()
+        latest = await reloadQueries()
         if (r.stopped) { setError(r.stopped); break }
         if (!r.remaining || !r.processed) break
       }
-      if (!stopRef.current) setMsg(`Tarama tamamlandı: ${total.processed} sorgu, ${total.found} firma bulundu, ${total.inserted} yeni lead eklendi.`)
+      // Bu çalıştırmada hataya düşen sorgular (saat farkı için 1 dk pay bırakılır)
+      const failed = latest.filter((x) => x.status === 'error' && x.ran_at && x.ran_at >= startedAt).length
+      const summary = `${total.processed} sorgu, ${total.found} firma bulundu, ${total.inserted} yeni lead eklendi`
+      if (failed) setError(`${failed} sorgu hata verdi (${summary}). Hata mesajları aşağıdaki tabloda.`)
+      else if (!stopRef.current) setMsg(`Tarama tamamlandı: ${summary}.`)
     } catch (e) {
       setError((e as Error).message)
       await reloadQueries().catch(() => {})
