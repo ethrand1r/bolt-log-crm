@@ -67,6 +67,7 @@ export function ScorePill({ score, lead, className = '' }: {
   const rs = lead?.research_status
   if (rs === 'pending') return tag('Araştırılacak', 'Firma internetten araştırıldıktan sonra puanlanacak')
   if (rs === 'running') return tag('Araştırılıyor…', 'Firma şu anda internetten araştırılıyor', 'bg-sky-50 text-sky-700')
+  if (rs === 'batched') return tag('Sonuç bekleniyor', 'Toplu (indirimli) araştırmada; sonuç genelde bir saat içinde gelir', 'bg-sky-50 text-sky-700')
   if (rs === 'failed') return tag('Araştırılamadı', 'Araştırma tamamlanamadı; lead ekranından tekrar deneyebilirsiniz', 'bg-red-50 text-red-700')
   if (lead?.lead_type === 'agent' && rs !== 'done') return tag('Acente', 'Yurt dışı acente / forwarder: araştırılınca puanlanır', 'bg-violet-100 text-violet-800')
   return (

@@ -220,8 +220,19 @@ export interface LeadResearch {
   score_items: ScoreItem[]
   target_country: string | null
   cost_usd: number
-  /** Araştırmayı yapan model */
+  /** Araştırmayı yapan model ("kural": Claude'a gitmeden kural ile değerlendirildi) */
   model?: string
+  method?: 'claude' | 'claude_batch' | 'rules'
+}
+
+/** Anthropic Batch API'ye gönderilmiş toplu araştırma */
+export interface ResearchBatch {
+  id: string
+  status: 'submitted' | 'processing' | 'ended' | 'failed'
+  lead_count: number
+  error: string | null
+  created_at: string
+  ended_at: string | null
 }
 
 /** İnternet araştırmasının bir adımı (lead-research Edge Function yazar) */
@@ -236,6 +247,7 @@ export interface LeadResearchEvent {
 export interface ResearchStats {
   pending: number
   running: number
+  batched: number
   done: number
   failed: number
   month_leads: number
@@ -284,8 +296,13 @@ export interface Lead {
   google_place_id: string | null
   /** customer: müşteri adayı, agent: yurt dışı acente / forwarder (puanlanmaz) */
   lead_type: 'customer' | 'agent'
-  /** pending: sırada, running: araştırılıyor, done, failed. null: araştırma istenmedi (eski kurallarla puanlanır) */
-  research_status: 'pending' | 'running' | 'done' | 'failed' | null
+  /**
+   * pending: sırada, running: araştırılıyor, batched: toplu (indirimli) araştırmada sonuç bekleniyor, done, failed.
+   * null: araştırma istenmedi (eski kurallarla puanlanır)
+   */
+  research_status: 'pending' | 'running' | 'batched' | 'done' | 'failed' | null
+  /** Elle istendi: toplu işlemi beklemeden hemen araştırılır */
+  research_priority: boolean
   research: LeadResearch | null
   /** Yeniden araştırılınca bir önceki sonuç (karşılaştırma için) */
   research_prev: LeadResearch | null

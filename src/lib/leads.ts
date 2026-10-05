@@ -50,11 +50,14 @@ export async function setResearchPaused(paused: boolean): Promise<void> {
   await q(supabase.from('settings').update({ lead_config: { ...s.lead_config, research_paused: paused } }).eq('id', 1))
 }
 
-/** Lead'leri araştırma sırasına alır (dönüştürülmüşler hariç). Yeniden araştırmada deneme sayacı sıfırlanır. */
+/**
+ * Lead'leri elle araştırma sırasına alır (dönüştürülmüşler ve toplu işlemde bekleyenler hariç).
+ * Elle istenenler öncelikli: toplu işlemi beklemeden, birkaç dakika içinde araştırılır.
+ */
 export async function queueResearch(ids: string[]): Promise<void> {
   for (let i = 0; i < ids.length; i += 200) {
-    await q(supabase.from('leads').update({ research_status: 'pending', research_error: null, research_attempts: 0 })
-      .in('id', ids.slice(i, i + 200)).neq('status', 'converted'))
+    await q(supabase.from('leads').update({ research_status: 'pending', research_priority: true, research_error: null, research_attempts: 0 })
+      .in('id', ids.slice(i, i + 200)).neq('status', 'converted').or('research_status.is.null,research_status.neq.batched'))
   }
 }
 

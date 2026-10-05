@@ -65,7 +65,7 @@ export function ResearchBar({ onChange }: { onChange?: () => void }) {
   useEffect(() => { load() }, [])
 
   // İş sürerken durumu ve listeyi tazele
-  const active = !!stats && !paused && stats.configured && stats.pending + stats.running > 0
+  const active = !!stats && stats.configured && ((!paused && stats.pending + stats.running > 0) || stats.batched > 0)
   useEffect(() => {
     if (!active) return
     const t = setInterval(() => { load(); onChange?.() }, 15_000)
@@ -104,10 +104,10 @@ export function ResearchBar({ onChange }: { onChange?: () => void }) {
       ) : (
         <>
           <span className={paused ? 'font-medium text-amber-700' : 'text-slate-600'}>
-            {paused ? 'Durduruldu' : stats.pending + stats.running > 0 ? 'Çalışıyor' : 'Sırada lead yok'}
+            {paused ? 'Durduruldu' : stats.pending + stats.running + stats.batched > 0 ? 'Çalışıyor' : 'Sırada lead yok'}
           </span>
           <span className="text-slate-500">
-            {stats.pending} sırada · {stats.running} araştırılıyor · {stats.done} tamamlandı
+            {stats.pending} sırada · {stats.running} araştırılıyor{stats.batched > 0 && ` · ${stats.batched} toplu işlemde`} · {stats.done} tamamlandı
             {stats.failed > 0 && <span className="text-red-600"> · {stats.failed} başarısız</span>}
           </span>
           <span className="text-slate-400">Bu ay {stats.month_leads} lead, ~${(stats.month_cost_cents / 100).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>

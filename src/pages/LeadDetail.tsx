@@ -288,7 +288,7 @@ function ResearchSection({ lead: l, onQueued }: { lead: Lead; onQueued: () => vo
     }
   }
 
-  const button = !converted && l.research_status !== 'pending' && l.research_status !== 'running' && (
+  const button = !converted && !['pending', 'running', 'batched'].includes(l.research_status ?? '') && (
     <button className="btn-ghost text-xs" disabled={busy} onClick={queue}>
       <Sparkles className="h-3.5 w-3.5" /> {l.research_status ? 'Yeniden araştır' : 'İnternetten araştır'}
     </button>
@@ -298,7 +298,10 @@ function ResearchSection({ lead: l, onQueued }: { lead: Lead; onQueued: () => vo
   return (
     <Section title="İnternet araştırması" actions={button || undefined}>
       <ErrorBox error={err} />
-      {l.research_status === 'pending' && <Empty>Sırada. Birkaç dakika içinde otomatik araştırılacak.</Empty>}
+      {l.research_status === 'pending' && (
+        <Empty>{l.research_priority ? 'Sırada. Birkaç dakika içinde araştırılacak.' : 'Sırada. Toplu (indirimli) araştırmaya gönderilecek.'}</Empty>
+      )}
+      {l.research_status === 'batched' && <Empty>Toplu (indirimli) araştırmada. Sonuç genelde bir saat içinde gelir.</Empty>}
       {l.research_status === 'running' && <ResearchTimeline events={events} live />}
       {l.research_status === 'failed' && (
         <div className="rounded-md bg-red-50 p-2 text-sm text-red-700">Araştırma tamamlanamadı{l.research_error && `: ${l.research_error}`}</div>
@@ -340,7 +343,8 @@ function ResearchSection({ lead: l, onQueued }: { lead: Lead; onQueued: () => vo
             </details>
           )}
           <p className="text-xs text-slate-400">
-            {l.researched_at && fmtDateTime(l.researched_at)}{typeof r.cost_usd === 'number' && ` · ~$${r.cost_usd.toFixed(2)}`}
+            {l.researched_at && fmtDateTime(l.researched_at)}
+            {r.method === 'rules' ? ' · Kural ile değerlendirildi (Claude kullanılmadı, ücretsiz)' : typeof r.cost_usd === 'number' && ` · ${r.model ?? ''} · ~$${r.cost_usd.toFixed(4)}`}
             {' · '}Boş olan iletişim ve firma bilgileri araştırmadan dolduruldu.
           </p>
         </div>

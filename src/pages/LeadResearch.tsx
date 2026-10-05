@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase, q } from '../lib/supabase'
-import type { Lead, LeadResearchEvent } from '../lib/types'
+import type { Lead, LeadResearchEvent, ResearchBatch } from '../lib/types'
 import { LEAD_TYPES } from '../lib/constants'
 import { fmtDateTime } from '../lib/format'
 import { Badge, Empty, ErrorBox, PageHeader, Section, Spinner } from '../components/ui'
@@ -9,7 +9,7 @@ import { ResearchBar, ResearchTimeline } from '../components/ResearchBar'
 import { LeadTabs, ScorePill } from './LeadGeneration'
 
 type Running = Pick<Lead, 'id' | 'name' | 'city' | 'country' | 'lead_type' | 'research_started_at' | 'research_attempts'>
-type Queued = Pick<Lead, 'id' | 'name' | 'city' | 'country' | 'lead_type'>
+type Queued = Pick<Lead, 'id' | 'name' | 'city' | 'country' | 'lead_type' | 'research_priority'>
 type Recent = Pick<Lead, 'id' | 'name' | 'lead_type' | 'research_status' | 'score' | 'status' | 'researched_at' | 'updated_at' | 'research_error'>
   & { cost: unknown; prev_score: unknown }
 
@@ -19,20 +19,24 @@ interface Data {
   queued: Queued[]
   queuedTotal: number
   recent: Recent[]
+  batches: ResearchBatch[]
 }
 
 /** Durum birkaç saniyede bir okunur (araştırma sunucuda sürer; bu ekran sadece izler) */
 const REFRESH_MS = 4000
 
 async function load(): Promise<Data> {
-  const [running, queuedRes, recent] = await Promise.all([
+  const [running, queuedRes, recent, batches] = await Promise.all([
     q<Running[]>(supabase.from('leads').select('id,name,city,country,lead_type,research_started_at,research_attempts')
       .eq('research_status', 'running').order('research_started_at')),
-    supabase.from('leads').select('id,name,city,country,lead_type', { count: 'exact' })
-      .eq('research_status', 'pending').not('status', 'in', '(converted,disqualified)').order('created_at').limit(15),
+    supabase.from('leads').select('id,name,city,country,lead_type,research_priority', { count: 'exact' })
+      .eq('research_status', 'pending').not('status', 'in', '(converted,disqualified)')
+      .order('research_priority', { ascending: false }).order('created_at').limit(15),
     q<Recent[]>(supabase.from('leads')
       .select('id,name,lead_type,research_status,score,status,researched_at,updated_at,research_error,cost:research->cost_usd,prev_score:research_prev->score')
       .in('research_status', ['done', 'failed']).order('updated_at', { ascending: false }).limit(20)),
+    q<ResearchBatch[]>(supabase.from('research_batches').select('id,status,lead_count,error,created_at,ended_at')
+      .order('created_at', { ascending: false }).limit(8)),
   ])
   if (queuedRes.error) throw new Error(queuedRes.error.message)
 
@@ -47,7 +51,7 @@ async function load(): Promise<Data> {
       events.set(e.lead_id, [...(events.get(e.lead_id) ?? []), e])
     }
   }
-  return { running, events, queued: (queuedRes.data ?? []) as Queued[], queuedTotal: queuedRes.count ?? 0, recent }
+  return { running, events, queued: (queuedRes.data ?? []) as Queued[], queuedTotal: queuedRes.count ?? 0, recent, batches }
 }
 
 function elapsed(from: string | null, now: number): string {
@@ -113,12 +117,31 @@ export default function LeadResearch() {
                       <span className="w-5 text-right text-xs text-slate-400 tabular-nums">{i + 1}.</span>
                       <Link to={`/lead-generation/${l.id}`} className="truncate text-slate-700 hover:text-brand-600">{l.name}</Link>
                       {l.lead_type === 'agent' && <Badge list={LEAD_TYPES} value="agent" />}
+                      {l.research_priority && <span className="rounded bg-brand-50 px-1 text-[10px] font-semibold text-brand-700" title="Elle istendi: toplu işlemi beklemeden araştırılır">HEMEN</span>}
                       <span className="ml-auto shrink-0 text-xs text-slate-400">{l.city}</span>
                     </li>
                   ))}
                   {data.queuedTotal > data.queued.length && <li className="pl-7 text-xs text-slate-400">+{data.queuedTotal - data.queued.length} lead daha</li>}
                 </ol>
               )}
+              <h3 className="mt-5 mb-1.5 text-xs font-semibold tracking-wide text-slate-500 uppercase">Toplu (indirimli) araştırmalar</h3>
+              {data.batches.length === 0 ? <p className="text-xs text-slate-400">Henüz toplu işlem yok.</p> : (
+                <ul className="space-y-1 text-xs">
+                  {data.batches.map((b) => (
+                    <li key={b.id} className="flex items-center gap-2">
+                      <span className="text-slate-500 tabular-nums">{fmtDateTime(b.created_at)}</span>
+                      <span className="text-slate-700">{b.lead_count} lead</span>
+                      <span className={`ml-auto ${b.status === 'failed' ? 'text-red-600' : b.status === 'ended' ? 'text-emerald-700' : 'text-sky-700'}`} title={b.error ?? undefined}>
+                        {b.status === 'ended' ? 'Tamamlandı' : b.status === 'failed' ? 'Başarısız' : 'Sonuç bekleniyor'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="mt-2 text-xs text-slate-400">
+                Taramadan gelen lead'ler %50 indirimli toplu işlemle araştırılır; sonuç genelde bir saat içinde gelir.
+                Bir lead'i hemen araştırmak için lead ekranında “İnternetten araştır” deyin.
+              </p>
             </Section>
 
             <Section title="Son tamamlananlar">
