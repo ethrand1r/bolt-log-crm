@@ -200,6 +200,46 @@ export interface ScoreItem {
   weight: number
   /** null: bilgi yok */
   ok: boolean | null
+  /** İnternet araştırmasında bulunan kanıt */
+  evidence?: string
+}
+
+/** Claude'un internet araştırması sonucu (leads.research) */
+export interface LeadResearch {
+  kind: 'customer' | 'agent'
+  summary: string
+  business_type: string
+  relevant: 'yes' | 'no' | 'unclear'
+  not_relevant_reason: string
+  products: string
+  exports: 'yes' | 'no' | 'unknown'
+  imports: 'yes' | 'no' | 'unknown'
+  export_markets: string[]
+  sources: string[]
+  score: number
+  score_items: ScoreItem[]
+  target_country: string | null
+  cost_usd: number
+}
+
+/** İnternet araştırmasının bir adımı (lead-research Edge Function yazar) */
+export interface LeadResearchEvent {
+  id: number
+  lead_id: string
+  created_at: string
+  kind: 'start' | 'search' | 'search_result' | 'fetch' | 'fetch_result' | 'fetch_error' | 'writing' | 'continue' | 'done' | 'error'
+  message: string
+}
+
+export interface ResearchStats {
+  pending: number
+  running: number
+  done: number
+  failed: number
+  month_leads: number
+  month_cost_cents: number
+  /** Zamanlayıcı kurulu mu */
+  configured: boolean
 }
 
 export interface Lead {
@@ -240,6 +280,15 @@ export interface Lead {
   search_id: string | null
   /** Google Places taramasıyla bulunduysa */
   google_place_id: string | null
+  /** customer: müşteri adayı, agent: yurt dışı acente / forwarder (puanlanmaz) */
+  lead_type: 'customer' | 'agent'
+  /** pending: sırada, running: araştırılıyor, done, failed. null: araştırma istenmedi (eski kurallarla puanlanır) */
+  research_status: 'pending' | 'running' | 'done' | 'failed' | null
+  research: LeadResearch | null
+  research_started_at: string | null
+  research_attempts: number
+  researched_at: string | null
+  research_error: string | null
   notes: string | null
   tags: string[] | null
   created_at: string
@@ -272,6 +321,8 @@ export interface SearchCriteria {
   prev_year: number
   export: SearchSector[]
   import: SearchSector[]
+  /** Hedef ülkede acente / forwarder araması: "<anahtar kelime> <şehir>" */
+  agents?: { cities: string[]; keywords: string[] }
 }
 
 /**
@@ -303,13 +354,19 @@ export interface LeadConfig {
   places_pages: number
   /** Aylık Google isteği sınırı; aşılınca tarama durur */
   places_monthly_limit: number
+  /** Otomatik internet araştırması duraklatıldı mı */
+  research_paused: boolean
+  /** Ayda en fazla kaç lead araştırılır */
+  research_monthly_limit: number
 }
 
 /** Bir aramanın tarama planındaki tek Google sorgusu: "<anahtar kelime> <il>" */
 export interface LeadSearchQuery {
   id: string
   search_id: string
-  direction: 'export' | 'import'
+  direction: 'export' | 'import' | 'agent'
+  /** Sorgunun çalıştığı ülke: müşteri sorguları TR, acente sorguları hedef ülke */
+  country_code: string
   sector: string
   city: string
   keyword: string

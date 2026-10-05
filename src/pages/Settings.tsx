@@ -4,7 +4,7 @@ import { getTheme, setTheme, type Theme } from '../lib/theme'
 import { supabase, q } from '../lib/supabase'
 import type { ChargeTemplate, LeadConfig, LeadScoring, Location, Settings } from '../lib/types'
 import { DEFAULT_LEAD_CONFIG } from '../lib/trade'
-import { CityMultiPicker, SectorPicker } from '../components/pickers'
+import { CityMultiPicker, ListInput, SectorPicker } from '../components/pickers'
 import { CHARGE_UNITS, CURRENCIES, MODES } from '../lib/constants'
 import { Link } from 'react-router-dom'
 import { ToggleChips } from '../components/leadForms'
@@ -153,16 +153,6 @@ function LeadScoringSettings() {
 
 interface SectorRegion { sector: string; cities: string[]; export_keywords: string[]; import_keywords: string[] }
 
-/** Virgülle ayrılmış liste; yazarken bozulmasın diye çıkışta (blur) kaydedilir */
-function ListInput({ value, onChange, placeholder }: { value: string[]; onChange: (v: string[]) => void; placeholder?: string }) {
-  const [text, setText] = useState(value.join(', '))
-  useEffect(() => setText(value.join(', ')), [value])
-  return (
-    <input className="input" value={text} placeholder={placeholder} onChange={(e) => setText(e.target.value)}
-      onBlur={() => onChange(text.split(',').map((x) => x.trim()).filter(Boolean))} />
-  )
-}
-
 function LeadSearchSettings() {
   const [cfg, setCfg] = useState<LeadConfig | null>(null)
   const [regions, setRegions] = useState<SectorRegion[]>([])
@@ -187,7 +177,9 @@ function LeadSearchSettings() {
     setError(null)
     setBusy(true)
     try {
-      await q(supabase.from('settings').update({ lead_config: cfg }).eq('id', 1))
+      // Durdur / devam et araştırma çubuğundan yönetilir; bu sayfa açıkken değişmiş olabilir
+      const latest = await getSettings()
+      await q(supabase.from('settings').update({ lead_config: { ...cfg, research_paused: !!latest.lead_config?.research_paused } }).eq('id', 1))
       const changed = regions.filter((r) => dirty.has(r.sector))
       if (changed.length) await q(supabase.from('sector_regions').upsert(changed))
       setDirty(new Set())
@@ -228,6 +220,9 @@ function LeadSearchSettings() {
         </Field>
         <Field label="Google taraması: aylık istek sınırı (ilk 1.000 istek ücretsiz)">
           <input className="input" type="number" min={0} value={cfg.places_monthly_limit} onChange={(e) => set('places_monthly_limit', Math.max(0, Number(e.target.value) || 0))} />
+        </Field>
+        <Field label="İnternet araştırması: ayda en fazla kaç lead (gerçek maliyet araştırma çubuğunda görünür)">
+          <input className="input" type="number" min={0} value={cfg.research_monthly_limit} onChange={(e) => set('research_monthly_limit', Math.max(0, Number(e.target.value) || 0))} />
         </Field>
       </div>
       <h4 className="mt-5 mb-1 text-xs font-semibold tracking-wide text-slate-500 uppercase">Sektör profilleri</h4>

@@ -118,6 +118,8 @@ export const DEFAULT_LEAD_CONFIG: LeadConfig = {
   excluded_sectors: ['Enerji & Yenilenebilir', 'Diğer'],
   places_pages: 1,
   places_monthly_limit: 900,
+  research_paused: false,
+  research_monthly_limit: 200,
 }
 
 // ------------------------------------------------------------ Veri çekme
@@ -198,6 +200,18 @@ export function analyzeFlow(
     }),
   }
 }
+
+/** Elle eklenen sektör için (ticaret verisi yok) HS fasılları ve en sık görülen taşıma modu */
+export function sectorProfile(sector: string): { hs: string[]; mode: ModeHint } {
+  const chapters = Object.entries(HS_CHAPTERS).filter(([, c]) => c.sector === sector)
+  const count: Record<ModeHint, number> = { sea: 0, air: 0, mixed: 0 }
+  chapters.forEach(([, c]) => count[c.mode]++)
+  const mode = (Object.entries(count).sort((a, b) => b[1] - a[1])[0][0]) as ModeHint
+  return { hs: chapters.map(([h]) => h), mode: chapters.length ? mode : 'sea' }
+}
+
+/** Acente / forwarder aramasında varsayılan anahtar kelimeler (hedef ülkede İngilizce aranır) */
+export const DEFAULT_AGENT_KEYWORDS = ['freight forwarder', 'logistics company', 'shipping agency']
 
 export function uniqueCities(list: string[]): string[] {
   return [...new Set(list.filter(Boolean))]

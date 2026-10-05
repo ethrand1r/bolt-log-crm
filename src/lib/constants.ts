@@ -161,6 +161,25 @@ export const LEAD_DIRECTIONS: Option[] = [
   { value: 'both', label: 'İhracat + İthalat' },
 ]
 
+export const LEAD_TYPES: Option[] = [
+  { value: 'customer', label: 'Müşteri adayı' },
+  { value: 'agent', label: 'Acente / Forwarder', color: 'bg-violet-100 text-violet-800' },
+]
+
+/** İnternet araştırmasında firmanın türü */
+export const BUSINESS_TYPES: Option[] = [
+  { value: 'manufacturer', label: 'Üretici' },
+  { value: 'exporter_trader', label: 'İhracatçı / dış ticaret firması' },
+  { value: 'importer_distributor', label: 'İthalatçı / distribütör' },
+  { value: 'wholesaler', label: 'Toptancı' },
+  { value: 'retailer', label: 'Perakende mağaza' },
+  { value: 'service_provider', label: 'Hizmet firması' },
+  { value: 'freight_forwarder', label: 'Freight forwarder' },
+  { value: 'logistics_other', label: 'Diğer lojistik' },
+  { value: 'other', label: 'Diğer' },
+  { value: 'unknown', label: 'Bilinmiyor' },
+]
+
 /** Google tarama sorgusu durumları */
 export const SEARCH_QUERY_STATUSES: Option[] = [
   { value: 'pending', label: 'Bekliyor', color: 'bg-slate-100 text-slate-700' },

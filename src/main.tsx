@@ -13,6 +13,7 @@ import LeadDetail from './pages/LeadDetail'
 import LeadSearches from './pages/LeadSearches'
 import LeadSearchEdit from './pages/LeadSearchEdit'
 import LeadSearchRun from './pages/LeadSearchRun'
+import LeadResearch from './pages/LeadResearch'
 import Companies from './pages/Companies'
 import CompanyDetail from './pages/CompanyDetail'
 import Pipeline from './pages/Pipeline'
@@ -53,6 +54,7 @@ function App() {
         <Route path="lead-generation/aramalar/yeni" element={<LeadSearchEdit key="yeni" />} />
         <Route path="lead-generation/aramalar/:id" element={<LeadSearchEdit />} />
         <Route path="lead-generation/aramalar/:id/tarama" element={<LeadSearchRun />} />
+        <Route path="lead-generation/arastirma" element={<LeadResearch />} />
         <Route path="lead-generation/:id" element={<LeadDetail />} />
         <Route path="firmalar" element={<Companies />} />
         <Route path="firmalar/:id" element={<CompanyDetail />} />

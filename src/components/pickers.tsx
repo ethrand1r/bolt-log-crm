@@ -232,3 +232,13 @@ export function MultiTextInput({ values, onChange, type = 'text', placeholder, r
     </div>
   )
 }
+
+/** Virgülle ayrılmış liste; yazarken bozulmasın diye çıkışta (blur) kaydedilir */
+export function ListInput({ value, onChange, placeholder }: { value: string[]; onChange: (v: string[]) => void; placeholder?: string }) {
+  const [text, setText] = useState(value.join(', '))
+  useEffect(() => setText(value.join(', ')), [value])
+  return (
+    <input className="input" value={text} placeholder={placeholder} onChange={(e) => setText(e.target.value)}
+      onBlur={() => onChange(text.split(',').map((x) => x.trim()).filter(Boolean))} />
+  )
+}

@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { supabase, q } from '../lib/supabase'
 import type { Lead, LeadActivity, LeadSearch } from '../lib/types'
-import { LEAD_ACTIVITY_TYPES, LEAD_DIRECTIONS, LEAD_OUTCOMES, LEAD_SOURCES, LEAD_STATUSES, MODES } from '../lib/constants'
+import { LEAD_ACTIVITY_TYPES, LEAD_DIRECTIONS, LEAD_OUTCOMES, LEAD_SOURCES, LEAD_STATUSES, LEAD_TYPES, MODES } from '../lib/constants'
 import { clean, numOrNull } from '../lib/format'
 import { findDup, getLeadSearches, loadDupIndex } from '../lib/leads'
 import { ErrorBox, Field, Modal, Select } from './ui'
@@ -49,7 +49,7 @@ export function LeadForm({ lead, defaultSearchId, onClose, onSaved }: {
 }) {
   const [f, setF] = useState<Partial<Lead>>(
     lead ?? {
-      country: 'Türkiye', country_code: 'TR', sectors: [], modes: [], target_markets: [], phones: [''], emails: [''], status: 'new',
+      country: 'Türkiye', country_code: 'TR', sectors: [], modes: [], target_markets: [], phones: [''], emails: [''], status: 'new', lead_type: 'customer',
       search_id: defaultSearchId ?? null,
     },
   )
@@ -76,7 +76,7 @@ export function LeadForm({ lead, defaultSearchId, onClose, onSaved }: {
         source: f.source, source_detail: f.source_detail, exports: f.exports ?? null, employees: numOrNull(f.employees),
         modes: f.modes ?? [], direction: f.direction, target_markets: f.target_markets ?? [], est_volume: f.est_volume,
         status: f.status, disqualify_reason: f.status === 'disqualified' ? f.disqualify_reason : null,
-        next_action_date: f.next_action_date, next_action_note: f.next_action_note, notes: f.notes, search_id: f.search_id ?? null,
+        next_action_date: f.next_action_date, next_action_note: f.next_action_note, notes: f.notes, search_id: f.search_id ?? null, lead_type: f.lead_type ?? 'customer',
       })
       const saved = lead
         ? await q<Lead>(supabase.from('leads').update(payload).eq('id', lead.id).select().single())
@@ -104,6 +104,8 @@ export function LeadForm({ lead, defaultSearchId, onClose, onSaved }: {
           <Field label="Lead araması" className="sm:col-span-2">
             <SearchSelect value={f.search_id} onChange={(v) => set('search_id', v)} />
           </Field>
+          <Field label="Lead türü"><Select options={LEAD_TYPES} value={f.lead_type ?? 'customer'} onChange={(v) => set('lead_type', v)} /></Field>
+          <div className="hidden sm:block" />
           <Field label="Kaynak"><Select options={LEAD_SOURCES} placeholder="-" value={f.source} onChange={(v) => set('source', v)} /></Field>
           <Field label="Kaynak detayı">
             <input className="input" placeholder="ör. Texworld 2026, İTKİB üye listesi" value={f.source_detail ?? ''} onChange={(e) => set('source_detail', e.target.value)} />
@@ -229,7 +231,8 @@ export function ConvertLeadModal({ lead, onClose, onDone }: { lead: Lead; onClos
   const firstMode = (lead.modes ?? []).find((m) => MODES.some((x) => x.value === m)) ?? 'sea_fcl'
   const [existing, setExisting] = useState<string | null>(null)
   const [email, setEmail] = useState('')
-  const [withOpp, setWithOpp] = useState(true)
+  const isAgent = lead.lead_type === 'agent'
+  const [withOpp, setWithOpp] = useState(!isAgent)
   const [title, setTitle] = useState(lead.est_volume ? `${lead.name} – ${lead.est_volume}` : lead.name)
   const [mode, setMode] = useState(firstMode)
   const [dup, setDup] = useState<string | null>(null)
@@ -262,7 +265,9 @@ export function ConvertLeadModal({ lead, onClose, onDone }: { lead: Lead; onClos
       <form onSubmit={submit}>
         <ErrorBox error={error} />
         <p className="mb-3 text-sm text-slate-600">
-          Firma <b>Müşteri</b> (cari) olarak açılır ve satış hunisinde <b>Kazanıldı</b> aşamasına düşer. İrtibat kişisi ve temas geçmişi de firmaya aktarılır.
+          {isAgent
+            ? <>Firma <b>Acente</b> olarak açılır. İrtibat kişisi ve temas geçmişi de firmaya aktarılır.</>
+            : <>Firma <b>Müşteri</b> (cari) olarak açılır ve satış hunisinde <b>Kazanıldı</b> aşamasına düşer. İrtibat kişisi ve temas geçmişi de firmaya aktarılır.</>}
         </p>
         {dup && (
           <div className="mb-3 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">

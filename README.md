@@ -11,7 +11,10 @@
    5. `supabase/005_lead_searches.sql`: Ülke bazlı lead aramaları (ticaret verisinden sektör + bölge), dönüştürmede Müşteri + Kazanıldı
    6. `supabase/006_lead_modes.sql`: Aramaya bağlı lead'lerde muhtemel taşıma modu otomatik
    7. `supabase/007_places_discovery.sql`: Google ile otomatik firma taraması (sorgu planı, mükerrer kontrolü, aylık istek sayacı)
-   8. `supabase/demo_data.sql`: (isteğe bağlı) 10 örnek firma + 20 örnek fırsat.
+   8. `supabase/008_agents_research.sql`: Hedef ülkede forwarder / acente taraması, Google'dan gelen lead'ler araştırılana kadar puanlanmaz
+   9. `supabase/009_lead_research.sql`: Lead'lerin Claude ile internetten otomatik araştırılması ve araştırmaya göre puanlama
+   10. `supabase/010_research_events.sql`: Araştırma adımlarının kaydı (Lead Generation > Araştırma ekranında canlı izleme)
+   11. `supabase/demo_data.sql`: (isteğe bağlı) 10 örnek firma + 20 örnek fırsat.
       Silmek için: `delete from companies where 'demo' = any(tags);`
 3. **Authentication > Users > Add user > Create new user** ile kendi e-posta ve şifrenizi oluşturun ("Auto confirm user" işaretli olsun).
 4. **Authentication > Sign In / Providers** altında **"Allow new users to sign up"** seçeneğini **kapatın**.
@@ -29,6 +32,12 @@
    3. **APIs & Services > Credentials > Create credentials > API key**. Anahtarı düzenleyip **API restrictions** altında
       sadece **Places API (New)** seçin (anahtar sadece sunucuda durur, tarayıcıya gitmez).
    4. Supabase **Edge Functions > Secrets** altına `GOOGLE_PLACES_KEY` adıyla anahtarı ekleyin.
+8. **Edge Function (lead'lerin internetten araştırılması):** `lead-research` adıyla `supabase/functions/lead-research/index.ts` yüklenir.
+   1. Fonksiyonun ayarlarında **Verify JWT** (JWT doğrulaması) seçeneğini **kapatın**. Bu fonksiyonu kullanıcı değil, her dakika
+      çalışan zamanlayıcı çağırır; çağrı veritabanındaki gizli bir anahtarla doğrulanır.
+   2. https://console.anthropic.com adresinden bir API anahtarı alın ve **Edge Functions > Secrets** altına `ANTHROPIC_API_KEY` adıyla ekleyin.
+   3. Uygulamada **Lead Generation** sayfasındaki "İnternet araştırması" çubuğunda **Kur ve başlat** deyin (bir kerelik).
+      Bundan sonra "Araştırılacak" lead'ler her dakika birkaç tane olmak üzere otomatik araştırılır; çubuktan durdurup devam ettirebilirsiniz.
 
 ## 2. Bilgisayarda çalıştırma
 

@@ -33,7 +33,8 @@ interface Place {
   primaryTypeDisplayName?: { text: string }
 }
 
-interface Query { id: string; query: string }
+/** country_code: sorgunun çalıştığı ülke (müşteri sorguları TR, acente sorguları aramanın hedef ülkesi) */
+interface Query { id: string; query: string; country_code: string }
 
 /** Uygulamadaki il listesiyle aynı yazım: "İstanbul" → "Istanbul", "Kahramanmaraş" → "Kahramanmaras" */
 function asciiCity(s: string): string {
@@ -43,11 +44,11 @@ function asciiCity(s: string): string {
 
 class FatalError extends Error {}
 
-async function searchPage(key: string, textQuery: string, pageToken?: string) {
+async function searchPage(key: string, textQuery: string, country: string, pageToken?: string) {
   const res = await fetch(PLACES_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': FIELDS },
-    body: JSON.stringify({ textQuery, languageCode: 'tr', regionCode: 'TR', pageSize: 20, ...(pageToken ? { pageToken } : {}) }),
+    body: JSON.stringify({ textQuery, languageCode: country === 'TR' ? 'tr' : 'en', regionCode: country, pageSize: 20, ...(pageToken ? { pageToken } : {}) }),
   })
   const body = await res.json().catch(() => null)
   if (!res.ok) {
@@ -59,17 +60,21 @@ async function searchPage(key: string, textQuery: string, pageToken?: string) {
   return { places: (body?.places ?? []) as Place[], next: body?.nextPageToken as string | undefined }
 }
 
-function toItem(p: Place) {
+function toItem(p: Place, country: string) {
   const comp = (type: string) => p.addressComponents?.find((c) => c.types?.includes(type))
   return {
     place_id: p.id,
     name: p.displayName?.text ?? '',
-    city: asciiCity(comp('administrative_area_level_1')?.longText ?? ''),
+    // Türkiye'de il (1. seviye idari bölge); yurt dışında şehir, yoksa eyalet / bölge
+    city: country === 'TR'
+      ? asciiCity(comp('administrative_area_level_1')?.longText ?? '')
+      : (comp('locality') ?? comp('postal_town') ?? comp('administrative_area_level_1'))?.longText ?? '',
     address: p.formattedAddress ?? '',
     website: p.websiteUri ?? '',
     phone: p.internationalPhoneNumber ?? '',
     category: p.primaryTypeDisplayName?.text ?? '',
     country: comp('country')?.shortText ?? '',
+    country_name: comp('country')?.longText ?? '',
   }
 }
 
@@ -103,7 +108,7 @@ Deno.serve(async (req) => {
     const usageRow = check(await db.from('api_usage').select('requests').eq('month', month).eq('api', 'google_places').maybeSingle())
     let usage = usageRow?.requests ?? 0
 
-    const queries = check(await db.from('lead_search_queries').select('id,query')
+    const queries = check(await db.from('lead_search_queries').select('id,query,country_code')
       .eq('search_id', search_id).eq('status', 'pending').order('created_at').order('query').limit(Math.min(20, Math.max(1, limit)))) as Query[]
 
     let processed = 0, found = 0, inserted = 0, requests = 0
@@ -121,12 +126,12 @@ Deno.serve(async (req) => {
         let token: string | undefined
         for (let page = 0; page < pages && usage < monthlyLimit; page++) {
           step = 'Google araması'
-          const r = await searchPage(key, q.query, token)
+          const r = await searchPage(key, q.query, q.country_code, token)
           qRequests++
           step = 'istek sayacı'
           usage = check(await db.rpc('api_usage_add', { p_api: 'google_places', p_n: 1 })) as number
           step = 'sonuçların okunması'
-          items.push(...r.places.filter((p) => p.businessStatus !== 'CLOSED_PERMANENTLY').map(toItem).filter((i) => !i.country || i.country === 'TR'))
+          items.push(...r.places.filter((p) => p.businessStatus !== 'CLOSED_PERMANENTLY').map((p) => toItem(p, q.country_code)).filter((i) => !i.country || i.country === q.country_code))
           token = r.next
           if (!token) break
         }

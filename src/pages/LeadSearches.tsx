@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowDownLeft, ArrowUpRight, Pencil, Plus, Radar, Trash2 } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, Globe2, Pencil, Plus, Radar, Trash2 } from 'lucide-react'
 import { supabase, q } from '../lib/supabase'
 import type { LeadSearch } from '../lib/types'
 import { OPEN_LEAD_STATUSES } from '../lib/constants'
@@ -83,7 +83,7 @@ export default function LeadSearches() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <h3 className="font-semibold text-slate-900">{s.name}</h3>
-                    <div className="text-xs text-slate-400">{s.country} · {s.criteria.year} verisi · {fmtDate(s.created_at)}{s.status === 'archived' && ' · Arşivlendi'}</div>
+                    <div className="text-xs text-slate-400">{s.country}{s.criteria.year > 0 && ` · ${s.criteria.year} verisi`} · {fmtDate(s.created_at)}{s.status === 'archived' && ' · Arşivlendi'}</div>
                   </div>
                   <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                     {s.status === 'active' && (
@@ -103,6 +103,12 @@ export default function LeadSearches() {
                       <dd className={`line-clamp-2 ${list.length ? 'text-slate-700' : 'text-slate-400'}`}>{list.map((x) => x.sector).join(', ') || '—'}</dd>
                     </div>
                   ))}
+                  {s.criteria.agents && (
+                    <div className="grid grid-cols-[4.5rem_1fr] gap-2">
+                      <dt className="flex items-center gap-1 text-slate-500"><Globe2 className="h-3.5 w-3.5 text-violet-600" />Acente</dt>
+                      <dd className="line-clamp-2 text-slate-700">{s.criteria.agents.cities.join(', ')}</dd>
+                    </div>
+                  )}
                 </dl>
                 {s.notes && <p className="mt-2 line-clamp-2 text-xs text-slate-500">{s.notes}</p>}
                 <div className="mt-auto grid grid-cols-4 gap-2 border-t border-slate-100 pt-3 text-center">

@@ -1,6 +1,7 @@
 import { supabase, q, invokeFn } from './supabase'
 import { norm } from '../components/Combobox'
-import type { LeadSearch, LeadSearchQuery, PlacesBatchResult } from './types'
+import type { LeadSearch, LeadSearchQuery, PlacesBatchResult, ResearchStats } from './types'
+import { getSettings } from './refdata'
 
 // ------------------------------------------------------------ Aramalar
 export function getLeadSearches(): Promise<LeadSearch[]> {
@@ -32,6 +33,33 @@ export async function getPlacesUsage(): Promise<number> {
 /** Sorguları yeniden çalıştırılmak üzere bekleyene alır. */
 export function requeueQueries(ids: string[]): Promise<unknown> {
   return q(supabase.from('lead_search_queries').update({ status: 'pending', error: null }).in('id', ids))
+}
+
+// ------------------------------------------------------------ İnternet araştırması (lead-research Edge Function)
+export function getResearchStats(): Promise<ResearchStats> {
+  return q(supabase.rpc('lead_research_stats'))
+}
+
+/** Her dakika çalışan zamanlayıcıyı bu projenin adresiyle kurar */
+export function setupResearch(): Promise<unknown> {
+  return q(supabase.rpc('lead_research_setup', { p_url: import.meta.env.VITE_SUPABASE_URL }))
+}
+
+export async function setResearchPaused(paused: boolean): Promise<void> {
+  const s = await getSettings()
+  await q(supabase.from('settings').update({ lead_config: { ...s.lead_config, research_paused: paused } }).eq('id', 1))
+}
+
+/** Lead'leri araştırma sırasına alır (dönüştürülmüşler hariç). Yeniden araştırmada deneme sayacı sıfırlanır. */
+export async function queueResearch(ids: string[]): Promise<void> {
+  for (let i = 0; i < ids.length; i += 200) {
+    await q(supabase.from('leads').update({ research_status: 'pending', research_error: null, research_attempts: 0 })
+      .in('id', ids.slice(i, i + 200)).neq('status', 'converted'))
+  }
+}
+
+export async function retryFailedResearch(): Promise<void> {
+  await q(supabase.from('leads').update({ research_status: 'pending', research_error: null, research_attempts: 0 }).eq('research_status', 'failed'))
 }
 
 /** Google kaydının haritadaki adresi */

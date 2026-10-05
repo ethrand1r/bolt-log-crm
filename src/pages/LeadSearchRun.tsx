@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowDownLeft, ArrowLeft, ArrowUpRight, Loader2, Pencil, Play, RotateCcw, Square } from 'lucide-react'
+import { ArrowDownLeft, ArrowLeft, ArrowUpRight, Globe2, Loader2, Pencil, Play, RotateCcw, Square } from 'lucide-react'
 import { supabase, q } from '../lib/supabase'
 import type { LeadConfig, LeadSearch, LeadSearchQuery } from '../lib/types'
 import { SEARCH_QUERY_STATUSES } from '../lib/constants'
@@ -9,6 +9,7 @@ import { getPlacesUsage, getSearchQueries, planSearch, requeueQueries, runPlaces
 import { getSettings } from '../lib/refdata'
 import { DEFAULT_LEAD_CONFIG } from '../lib/trade'
 import { Badge, Empty, ErrorBox, PageHeader, Section, Select, Spinner } from '../components/ui'
+import { ResearchBar } from '../components/ResearchBar'
 
 /** Bir Edge Function çağrısında çalışan sorgu sayısı (sayfa başına ~1 sn, fonksiyon süre sınırının altında kalır) */
 const BATCH = 3
@@ -56,7 +57,6 @@ export default function LeadSearchRun() {
       }
     })()
     return () => { stopRef.current = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   const stats = useMemo(() => {
@@ -134,7 +134,7 @@ export default function LeadSearchRun() {
       </Link>
       <PageHeader
         title={`${search.name}: Google taraması`}
-        subtitle="Her sektör ve il için Google Haritalar'da firma aranır; bulunanlar mükerrer kontrolünden geçip lead havuzuna eklenir ve puanlanır."
+        subtitle="Her sektör ve il için Google Haritalar'da firma aranır; bulunanlar mükerrer kontrolünden geçip lead havuzuna “araştırılacak” olarak eklenir. Puanlama, firmalar araştırıldıktan sonra yapılır."
         actions={
           <>
             <Link to={`/lead-generation/aramalar/${id}`} className="btn-secondary"><Pencil className="h-4 w-4" /> Kriterler</Link>
@@ -143,6 +143,7 @@ export default function LeadSearchRun() {
         }
       />
       <ErrorBox error={error} />
+      <ResearchBar />
       {msg && <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{msg}</div>}
 
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
@@ -193,7 +194,7 @@ export default function LeadSearchRun() {
 
       <Section title="Sorgular" actions={
         <div className="flex gap-2">
-          <Select className="w-auto!" options={[{ value: 'export', label: 'İhracat' }, { value: 'import', label: 'İthalat' }]} placeholder="Tüm yönler" value={dirFilter} onChange={setDirFilter} />
+          <Select className="w-auto!" options={[{ value: 'export', label: 'İhracat' }, { value: 'import', label: 'İthalat' }, { value: 'agent', label: 'Acente / forwarder' }]} placeholder="Tüm yönler" value={dirFilter} onChange={setDirFilter} />
           <Select className="w-auto!" options={SEARCH_QUERY_STATUSES} placeholder="Tüm durumlar" value={statusFilter} onChange={setStatusFilter} />
         </div>
       }>
@@ -213,7 +214,9 @@ export default function LeadSearchRun() {
                     <td className="whitespace-nowrap">
                       {x.direction === 'export'
                         ? <span className="flex items-center gap-1 text-slate-600"><ArrowUpRight className="h-3.5 w-3.5 text-emerald-600" />İhracat</span>
-                        : <span className="flex items-center gap-1 text-slate-600"><ArrowDownLeft className="h-3.5 w-3.5 text-sky-600" />İthalat</span>}
+                        : x.direction === 'import'
+                          ? <span className="flex items-center gap-1 text-slate-600"><ArrowDownLeft className="h-3.5 w-3.5 text-sky-600" />İthalat</span>
+                          : <span className="flex items-center gap-1 text-slate-600"><Globe2 className="h-3.5 w-3.5 text-violet-600" />Acente</span>}
                     </td>
                     <td className="text-slate-700">{x.sector}</td>
                     <td className="font-medium text-slate-800">{x.query}</td>

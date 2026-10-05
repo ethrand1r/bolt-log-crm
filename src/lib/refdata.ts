@@ -113,6 +113,14 @@ export async function addCustomCarrier(kind: 'sea' | 'air', input: string): Prom
   return code ? `${name} (${code})` : name
 }
 
+/** Ülkenin uluslararası havalimanı olan şehirleri: acente / forwarder aramasında varsayılan şehirler */
+export async function getHubCities(code: string, max = 6): Promise<string[]> {
+  const rows = await cached('airports', () => fetchJson<AirportRow[]>('/ref/airports.json'))
+  const inCountry = rows.filter((r) => r[3] === code && r[2])
+  const intl = inCountry.filter((r) => /international/i.test(r[1]))
+  return [...new Set((intl.length ? intl : inCountry).map((r) => r[2]))].slice(0, max)
+}
+
 function dedupe(list: ComboOption[]): ComboOption[] {
   const seen = new Set<string>()
   return list.filter((o) => (seen.has(o.value) ? false : (seen.add(o.value), true)))
