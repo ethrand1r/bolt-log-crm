@@ -14,7 +14,8 @@
    8. `supabase/008_agents_research.sql`: Hedef ülkede forwarder / acente taraması, Google'dan gelen lead'ler araştırılana kadar puanlanmaz
    9. `supabase/009_lead_research.sql`: Lead'lerin Claude ile internetten otomatik araştırılması ve araştırmaya göre puanlama
    10. `supabase/010_research_events.sql`: Araştırma adımlarının kaydı (Lead Generation > Araştırma ekranında canlı izleme)
-   11. `supabase/demo_data.sql`: (isteğe bağlı) 10 örnek firma + 20 örnek fırsat.
+   11. `supabase/011_research_cost.sql`: Ucuzlatılmış araştırma için ölçüm (önceki sonuçla karşılaştırma, sent altı maliyet)
+   12. `supabase/demo_data.sql`: (isteğe bağlı) 10 örnek firma + 20 örnek fırsat.
       Silmek için: `delete from companies where 'demo' = any(tags);`
 3. **Authentication > Users > Add user > Create new user** ile kendi e-posta ve şifrenizi oluşturun ("Auto confirm user" işaretli olsun).
 4. **Authentication > Sign In / Providers** altında **"Allow new users to sign up"** seçeneğini **kapatın**.

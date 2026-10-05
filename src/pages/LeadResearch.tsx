@@ -11,7 +11,7 @@ import { LeadTabs, ScorePill } from './LeadGeneration'
 type Running = Pick<Lead, 'id' | 'name' | 'city' | 'country' | 'lead_type' | 'research_started_at' | 'research_attempts'>
 type Queued = Pick<Lead, 'id' | 'name' | 'city' | 'country' | 'lead_type'>
 type Recent = Pick<Lead, 'id' | 'name' | 'lead_type' | 'research_status' | 'score' | 'status' | 'researched_at' | 'updated_at' | 'research_error'>
-  & { cost: unknown }
+  & { cost: unknown; prev_score: unknown }
 
 interface Data {
   running: Running[]
@@ -31,7 +31,7 @@ async function load(): Promise<Data> {
     supabase.from('leads').select('id,name,city,country,lead_type', { count: 'exact' })
       .eq('research_status', 'pending').not('status', 'in', '(converted,disqualified)').order('created_at').limit(15),
     q<Recent[]>(supabase.from('leads')
-      .select('id,name,lead_type,research_status,score,status,researched_at,updated_at,research_error,cost:research->cost_usd')
+      .select('id,name,lead_type,research_status,score,status,researched_at,updated_at,research_error,cost:research->cost_usd,prev_score:research_prev->score')
       .in('research_status', ['done', 'failed']).order('updated_at', { ascending: false }).limit(20)),
   ])
   if (queuedRes.error) throw new Error(queuedRes.error.message)
@@ -131,7 +131,12 @@ export default function LeadResearch() {
                     <tbody>
                       {data.recent.map((l) => (
                         <tr key={l.id}>
-                          <td><ScorePill score={l.score} lead={l} /></td>
+                          <td className="whitespace-nowrap">
+                            {typeof l.prev_score === 'number' && l.research_status === 'done' && (
+                              <span className="mr-1 text-xs text-slate-400 tabular-nums" title="Önceki araştırmanın puanı">{l.prev_score} →</span>
+                            )}
+                            <ScorePill score={l.score} lead={l} />
+                          </td>
                           <td className="max-w-64">
                             <Link to={`/lead-generation/${l.id}`} className="block truncate font-medium text-slate-900 hover:text-brand-600">{l.name}</Link>
                             {l.research_status === 'failed' && l.research_error && <div className="truncate text-xs text-red-600" title={l.research_error}>{l.research_error}</div>}
@@ -139,7 +144,7 @@ export default function LeadResearch() {
                           <td className="whitespace-nowrap text-xs">
                             {l.status === 'disqualified' ? <span className="text-red-600">Uygun değil</span> : <span className="text-slate-500">{l.lead_type === 'agent' ? 'Acente' : 'Müşteri adayı'}</span>}
                           </td>
-                          <td className="text-right text-xs text-slate-500 tabular-nums">{typeof l.cost === 'number' ? `$${l.cost.toFixed(2)}` : '-'}</td>
+                          <td className="text-right text-xs text-slate-500 tabular-nums">{typeof l.cost === 'number' ? `$${l.cost.toFixed(3)}` : '-'}</td>
                           <td className="whitespace-nowrap text-xs text-slate-500">{fmtDateTime(l.researched_at ?? l.updated_at)}</td>
                         </tr>
                       ))}

@@ -220,6 +220,8 @@ export interface LeadResearch {
   score_items: ScoreItem[]
   target_country: string | null
   cost_usd: number
+  /** Araştırmayı yapan model */
+  model?: string
 }
 
 /** İnternet araştırmasının bir adımı (lead-research Edge Function yazar) */
@@ -285,6 +287,8 @@ export interface Lead {
   /** pending: sırada, running: araştırılıyor, done, failed. null: araştırma istenmedi (eski kurallarla puanlanır) */
   research_status: 'pending' | 'running' | 'done' | 'failed' | null
   research: LeadResearch | null
+  /** Yeniden araştırılınca bir önceki sonuç (karşılaştırma için) */
+  research_prev: LeadResearch | null
   research_started_at: string | null
   research_attempts: number
   researched_at: string | null

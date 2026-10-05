@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRightLeft, Ban, CalendarClock, Check, ExternalLink, HelpCircle, Mail, Pencil, Phone, Plus, RotateCcw, Sparkles, Trash2, X } from 'lucide-react'
 import { supabase, q } from '../lib/supabase'
-import type { Lead, LeadActivity, LeadResearchEvent } from '../lib/types'
+import type { Lead, LeadActivity, LeadResearch, LeadResearchEvent } from '../lib/types'
 import { BUSINESS_TYPES, LEAD_ACTIVITY_TYPES, LEAD_DIRECTIONS, LEAD_OUTCOMES, LEAD_STATUSES, MODES, label } from '../lib/constants'
 import { fmtDate, fmtDateTime, todayISO } from '../lib/format'
 import { getCountries } from '../lib/refdata'
@@ -332,6 +332,7 @@ function ResearchSection({ lead: l, onQueued }: { lead: Lead; onQueued: () => vo
               ))}
             </div>
           )}
+          {l.research_prev && <ResearchCompare prev={l.research_prev} next={r} />}
           {events.length > 0 && (
             <details className="text-xs">
               <summary className="cursor-pointer text-slate-500 hover:text-slate-800">Araştırma adımları ({events.length})</summary>
@@ -345,5 +346,44 @@ function ResearchSection({ lead: l, onQueued }: { lead: Lead; onQueued: () => vo
         </div>
       )}
     </Section>
+  )
+}
+
+/** Önceki ve yeni araştırmanın puanı ve kriterleri yan yana (model / ayar değişikliğinin kaliteyi bozup bozmadığını görmek için) */
+function ResearchCompare({ prev, next }: { prev: LeadResearch; next: LeadResearch }) {
+  const mark = (ok: boolean | null | undefined) =>
+    ok === true ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : ok === false ? <X className="h-3.5 w-3.5 text-red-500" /> : <HelpCircle className="h-3.5 w-3.5 text-slate-400" />
+  const prevItems = new Map((prev.score_items ?? []).map((i) => [i.key, i]))
+  const shortModel = (m?: string) => (m ?? '').replace(/^claude-/, '') || 'önceki'
+  const cost = (c?: number) => (typeof c === 'number' ? ` · $${c.toFixed(3)}` : '')
+  return (
+    <details className="rounded-md border border-slate-200 p-2 text-xs" open>
+      <summary className="cursor-pointer font-medium text-slate-700">
+        Önceki araştırmayla karşılaştırma: {prev.score} → {next.score}
+      </summary>
+      <table className="mt-2 w-full">
+        <thead>
+          <tr className="text-slate-500">
+            <th className="text-left font-normal">Kriter</th>
+            <th className="font-normal">{shortModel(prev.model)}{cost(prev.cost_usd)}</th>
+            <th className="font-normal">{shortModel(next.model)}{cost(next.cost_usd)}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(next.score_items ?? []).map((i) => {
+            const old = prevItems.get(i.key)
+            const changed = (old?.ok ?? null) !== i.ok
+            return (
+              <tr key={i.key} className={changed ? 'bg-amber-50' : ''}>
+                <td className="py-0.5 pr-2 text-slate-600" title={[old?.evidence && `Önceki: ${old.evidence}`, i.evidence && `Yeni: ${i.evidence}`].filter(Boolean).join('\n')}>{i.label}</td>
+                <td><span className="flex justify-center">{mark(old?.ok)}</span></td>
+                <td><span className="flex justify-center">{mark(i.ok)}</span></td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      <p className="mt-1 text-slate-400">Sarı satırlar farklı değerlendirilen kriterler; kanıtları görmek için satırın üzerine gelin.</p>
+    </details>
   )
 }

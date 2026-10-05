@@ -13,8 +13,25 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 const PLACES_URL = 'https://places.googleapis.com/v1/places:searchText'
 const FIELDS = [
   'places.id', 'places.displayName', 'places.formattedAddress', 'places.addressComponents', 'places.websiteUri',
-  'places.internationalPhoneNumber', 'places.businessStatus', 'places.primaryTypeDisplayName', 'nextPageToken',
+  'places.internationalPhoneNumber', 'places.businessStatus', 'places.primaryType', 'places.primaryTypeDisplayName', 'nextPageToken',
 ].join(',')
+
+/**
+ * Müşteri ya da acente olamayacak Google türleri: lead havuzuna hiç eklenmez, araştırmaya da gitmez.
+ * Bilerek dar tutuldu: "furniture_store" gibi mağaza türleri elenmez, çünkü Türkiye'de birçok üretici
+ * Google'da showroom'u üzerinden mağaza olarak görünür. Bunları araştırma ayıklar.
+ */
+const EXCLUDED_TYPES = new Set([
+  'restaurant', 'cafe', 'coffee_shop', 'bar', 'pub', 'meal_takeaway', 'meal_delivery', 'night_club',
+  'beauty_salon', 'hair_care', 'hair_salon', 'barber_shop', 'nail_salon', 'spa', 'gym', 'fitness_center',
+  'lodging', 'hotel', 'motel', 'hostel', 'guest_house',
+  'hospital', 'doctor', 'dentist', 'dental_clinic', 'medical_clinic', 'pharmacy', 'drugstore', 'veterinary_care',
+  'school', 'primary_school', 'secondary_school', 'university', 'preschool',
+  'real_estate_agency', 'car_repair', 'car_wash', 'gas_station', 'parking',
+  'supermarket', 'grocery_store', 'convenience_store', 'shopping_mall', 'department_store',
+  'mosque', 'church', 'place_of_worship', 'park', 'tourist_attraction', 'museum',
+])
+const excluded = (type: string | undefined) => !!type && (EXCLUDED_TYPES.has(type) || type.endsWith('_restaurant'))
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -30,6 +47,7 @@ interface Place {
   websiteUri?: string
   internationalPhoneNumber?: string
   businessStatus?: string
+  primaryType?: string
   primaryTypeDisplayName?: { text: string }
 }
 
@@ -131,7 +149,7 @@ Deno.serve(async (req) => {
           step = 'istek sayacı'
           usage = check(await db.rpc('api_usage_add', { p_api: 'google_places', p_n: 1 })) as number
           step = 'sonuçların okunması'
-          items.push(...r.places.filter((p) => p.businessStatus !== 'CLOSED_PERMANENTLY').map((p) => toItem(p, q.country_code)).filter((i) => !i.country || i.country === q.country_code))
+          items.push(...r.places.filter((p) => p.businessStatus !== 'CLOSED_PERMANENTLY' && !excluded(p.primaryType)).map((p) => toItem(p, q.country_code)).filter((i) => !i.country || i.country === q.country_code))
           token = r.next
           if (!token) break
         }
