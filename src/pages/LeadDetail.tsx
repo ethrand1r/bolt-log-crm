@@ -16,6 +16,7 @@ interface Detail {
   lead: Lead
   activities: LeadActivity[]
   countryNames: Map<string, string>
+  countryTr: Map<string, string>
   searchName: string | null
 }
 
@@ -35,14 +36,14 @@ export default function LeadDetail() {
       getLeadSearches(),
     ])
     return {
-      lead, activities, countryNames: new Map(countries.map((c) => [c.code, c.name])),
+      lead, activities, countryNames: new Map(countries.map((c) => [c.code, c.name])), countryTr: new Map(countries.map((c) => [c.code, c.tr])),
       searchName: searches.find((s) => s.id === lead.search_id)?.name ?? null,
     }
   }, [id])
 
   if (loading && !data) return <Spinner />
   if (error || !data) return <ErrorBox error={error ?? 'Lead bulunamadı'} />
-  const { lead: l, activities, countryNames, searchName } = data
+  const { lead: l, activities, countryNames, countryTr, searchName } = data
   const converted = l.status === 'converted'
   const due = !converted && l.next_action_date && l.next_action_date <= todayISO()
   const researched = l.research_status === 'done' && !!l.research
@@ -76,6 +77,7 @@ export default function LeadDetail() {
   }
 
   const info: [string, React.ReactNode][] = [
+    ['Pazar', l.market && <Link to={`/lead-generation?pazar=${l.market}`} className="text-brand-600 hover:underline">{countryTr.get(l.market) ?? l.market}</Link>],
     ['Arama', l.search_id && searchName && <Link to={`/lead-generation?arama=${l.search_id}`} className="text-brand-600 hover:underline">{searchName}</Link>],
     ['Web', l.website && <a href={href(l.website)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-brand-600 hover:underline">{l.website}<ExternalLink className="h-3 w-3" /></a>],
     ['Google', l.google_place_id && <a href={mapsUrl(l.google_place_id)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-brand-600 hover:underline">Haritada gör<ExternalLink className="h-3 w-3" /></a>],
@@ -86,7 +88,7 @@ export default function LeadDetail() {
     ['Kaynak', [l.source, l.source_detail].filter(Boolean).join(' · ')],
     ['Yön', label(LEAD_DIRECTIONS, l.direction)],
     ['Mod', (l.modes ?? []).map((m) => label(MODES, m)).join(', ')],
-    ['Pazarlar', (l.target_markets ?? []).map((c) => countryNames.get(c) ?? c).join(', ')],
+    ['Ticaret ülkeleri', (l.target_markets ?? []).map((c) => countryNames.get(c) ?? c).join(', ')],
     ['Çalışan', l.employees],
     ['İhracat', l.exports === null ? null : l.exports ? 'Evet' : 'Hayır'],
     ['Hacim', l.est_volume],

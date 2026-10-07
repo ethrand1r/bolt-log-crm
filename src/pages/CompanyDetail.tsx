@@ -7,6 +7,7 @@ import { ACTIVITY_TYPES, COMPANY_TYPES, COMPLETED_SHIPMENT_STATUSES, MODES, QUOT
 import { fmtDate, fmtDateTime, fmtMoney } from '../lib/format'
 import { Badge, Empty, ErrorBox, PageHeader, Section, Spinner, useLoad } from '../components/ui'
 import { ActivityForm, CompanyForm, ContactForm, OpportunityForm } from '../components/forms'
+import { getCountries } from '../lib/refdata'
 
 interface Detail {
   company: Company
@@ -15,6 +16,7 @@ interface Detail {
   opportunities: Opportunity[]
   quotes: Quote[]
   shipments: Shipment[]
+  marketName: string | null
 }
 
 export default function CompanyDetail() {
@@ -26,20 +28,22 @@ export default function CompanyDetail() {
   const [err, setErr] = useState<string | null>(null)
 
   const { data, loading, error, reload } = useLoad<Detail>(async () => {
-    const [company, contacts, activities, opportunities, quotes, shipments] = await Promise.all([
+    const [company, contacts, activities, opportunities, quotes, shipments, countries] = await Promise.all([
       q<Company>(supabase.from('companies').select('*').eq('id', id!).single()),
       q<Contact[]>(supabase.from('contacts').select('*').eq('company_id', id!).order('is_primary', { ascending: false }).order('full_name')),
       q<Activity[]>(supabase.from('activities').select('*').eq('company_id', id!).order('activity_date', { ascending: false })),
       q<Opportunity[]>(supabase.from('opportunities').select('*').eq('company_id', id!).order('created_at', { ascending: false })),
       q<Quote[]>(supabase.from('quotes').select('*').eq('company_id', id!).order('created_at', { ascending: false })),
       q<Shipment[]>(supabase.from('shipments').select('*').eq('company_id', id!).order('created_at', { ascending: false })),
+      getCountries().catch(() => []),
     ])
-    return { company, contacts, activities, opportunities, quotes, shipments }
+    const marketName = company.market ? countries.find((x) => x.code === company.market)?.tr ?? company.market : null
+    return { company, contacts, activities, opportunities, quotes, shipments, marketName }
   }, [id])
 
   if (loading && !data) return <Spinner />
   if (error || !data) return <ErrorBox error={error ?? 'Firma bulunamadı'} />
-  const { company: c, contacts, activities, opportunities, quotes, shipments } = data
+  const { company: c, contacts, activities, opportunities, quotes, shipments, marketName } = data
 
   async function del(table: string, rowId: string, msg: string) {
     if (!confirm(msg)) return
@@ -99,7 +103,7 @@ export default function CompanyDetail() {
           <Section title="Firma bilgileri">
             <dl className="space-y-2 text-sm">
               {([
-                ['E-posta', (c.emails ?? []).join('\n')], ['Telefon', (c.phones ?? []).join('\n')], ['Web', c.website], ['Adres', c.address],
+                ['Pazar', marketName], ['E-posta', (c.emails ?? []).join('\n')], ['Telefon', (c.phones ?? []).join('\n')], ['Web', c.website], ['Adres', c.address],
                 ['Vergi', [c.tax_office, c.tax_no].filter(Boolean).join(' / ')], ['EORI', c.eori], ['Kaynak', c.source],
               ] as const).filter(([, v]) => v).map(([k, v]) => (
                 <div key={k} className="grid grid-cols-[5rem_1fr] gap-2">

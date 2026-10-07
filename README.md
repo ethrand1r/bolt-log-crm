@@ -16,7 +16,8 @@
    10. `supabase/010_research_events.sql`: Araştırma adımlarının kaydı (Lead Generation > Araştırma ekranında canlı izleme)
    11. `supabase/011_research_cost.sql`: Ucuzlatılmış araştırma için ölçüm (önceki sonuçla karşılaştırma, sent altı maliyet)
    12. `supabase/012_research_batch.sql`: Ucuz araştırma (Haiku 4.5, toplu işlem, kural ile ön değerlendirme, elle istenenler için öncelikli kuyruk)
-   13. `supabase/demo_data.sql`: (isteğe bağlı) 10 örnek firma + 20 örnek fırsat.
+   13. `supabase/013_markets.sql`: Lead ve firmalarda elle seçilebilen "Pazar" alanı
+   14. `supabase/demo_data.sql`: (isteğe bağlı) 10 örnek firma + 20 örnek fırsat.
       Silmek için: `delete from companies where 'demo' = any(tags);`
 3. **Authentication > Users > Add user > Create new user** ile kendi e-posta ve şifrenizi oluşturun ("Auto confirm user" işaretli olsun).
 4. **Authentication > Sign In / Providers** altında **"Allow new users to sign up"** seçeneğini **kapatın**.

@@ -6,6 +6,7 @@ import type { Lead, LeadSearch } from '../lib/types'
 import { LEAD_DIRECTIONS, LEAD_SOURCES, LEAD_STATUSES, LEAD_TYPES, MODES, OPEN_LEAD_STATUSES, label } from '../lib/constants'
 import { fmtDate, todayISO } from '../lib/format'
 import { fetchAll, getLeadSearches, queueResearch, scoreTone } from '../lib/leads'
+import { getCountries } from '../lib/refdata'
 import { Badge, Empty, ErrorBox, PageHeader, Select, Spinner, useLoad } from '../components/ui'
 import { LeadForm } from '../components/leadForms'
 import { LeadImport } from '../components/LeadImport'
@@ -13,9 +14,9 @@ import { ResearchBar } from '../components/ResearchBar'
 
 type Row = Pick<Lead, 'id' | 'name' | 'sectors' | 'city' | 'country' | 'website' | 'source' | 'source_detail' | 'status' | 'score'
   | 'next_action_date' | 'next_action_note' | 'last_contact_at' | 'converted_at' | 'contact_name' | 'created_at' | 'search_id' | 'direction' | 'modes'
-  | 'lead_type' | 'research_status'>
+  | 'lead_type' | 'research_status' | 'market'>
 
-const COLUMNS = 'id,name,sectors,city,country,website,source,source_detail,status,score,next_action_date,next_action_note,last_contact_at,converted_at,contact_name,created_at,search_id,direction,modes,lead_type,research_status'
+const COLUMNS = 'id,name,sectors,city,country,website,source,source_detail,status,score,next_action_date,next_action_note,last_contact_at,converted_at,contact_name,created_at,search_id,direction,modes,lead_type,research_status,market'
 const PAGE = 200
 
 /** Liste görünümleri: açık lead'ler, takibi gelenler, tek tek durumlar, tümü */
@@ -80,7 +81,23 @@ export default function LeadGeneration() {
   const nav = useNavigate()
   const [params, setParams] = useSearchParams()
   const searchId = params.get('arama') ?? ''
-  const setSearchId = (v: string) => { setParams(v ? { arama: v } : {}); setLimit(PAGE) }
+  const market = params.get('pazar') ?? ''
+  const setFilters = (f: { arama?: string; pazar?: string }) => {
+    const next = new URLSearchParams(params)
+    for (const [k, v] of Object.entries(f)) {
+      if (v) next.set(k, v)
+      else next.delete(k)
+    }
+    setParams(next)
+    setLimit(PAGE)
+    setSelected(new Set())
+  }
+  const setSearchId = (v: string) => setFilters({ arama: v })
+  // Pazar değişince başka ülkenin aramasıysa arama seçimi kaldırılır
+  const setMarket = (v: string) => {
+    const s = loaded?.searches.find((x) => x.id === searchId)
+    setFilters({ pazar: v, ...(v && s && s.country_code !== v ? { arama: '' } : {}) })
+  }
   const [search, setSearch] = useState('')
   const [view, setView] = useState('open')
   const [source, setSource] = useState('')
@@ -96,15 +113,31 @@ export default function LeadGeneration() {
   const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const { data: loaded, loading, error, reload } = useLoad(async () => {
-    const [leads, searches] = await Promise.all([fetchAll<Row>('leads', COLUMNS), getLeadSearches()])
-    return { leads, searches }
+    const [leads, searches, countries] = await Promise.all([fetchAll<Row>('leads', COLUMNS), getLeadSearches(), getCountries()])
+    return { leads, searches, countryName: new Map(countries.map((c) => [c.code, c.tr])) }
   })
   const searches: LeadSearch[] = loaded?.searches ?? []
   const searchName = useMemo(() => new Map(searches.map((s) => [s.id, s.name])), [searches])
-  // Sayaçlar ve liste seçili aramaya göre daraltılır
+  const marketName = (code: string) => loaded?.countryName.get(code) ?? code
+
+  // Pazar sekmeleri: lead sayısına göre, pazarı belli olmayanlar en sonda
+  const markets = useMemo(() => {
+    const counts = new Map<string, number>()
+    let none = 0
+    for (const l of loaded?.leads ?? []) {
+      if (l.market) counts.set(l.market, (counts.get(l.market) ?? 0) + 1)
+      else none++
+    }
+    const list = [...counts].map(([code, n]) => ({ code, n })).sort((a, b) => b.n - a.n || marketName(a.code).localeCompare(marketName(b.code), 'tr'))
+    return { list, none, all: loaded?.leads.length ?? 0 }
+  }, [loaded])
+
+  // Sayaçlar ve liste seçili pazara ve aramaya göre daraltılır
   const data = useMemo(
-    () => loaded && (searchId ? loaded.leads.filter((l) => (searchId === 'none' ? !l.search_id : l.search_id === searchId)) : loaded.leads),
-    [loaded, searchId],
+    () => loaded && loaded.leads.filter((l) =>
+      (!market || (market === 'none' ? !l.market : l.market === market)) &&
+      (!searchId || (searchId === 'none' ? !l.search_id : l.search_id === searchId))),
+    [loaded, searchId, market],
   )
 
   const today = todayISO()
@@ -211,6 +244,24 @@ export default function LeadGeneration() {
       <ResearchBar onChange={reload} />
       {msg && <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{msg}</div>}
 
+      {markets.list.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Pazarlar">
+          {[
+            { value: '', label: 'Tüm pazarlar', n: markets.all },
+            ...markets.list.map((m) => ({ value: m.code, label: marketName(m.code), n: m.n })),
+            ...(markets.none ? [{ value: 'none', label: 'Pazarı belli değil', n: markets.none }] : []),
+          ].map((m) => {
+            const active = market === m.value
+            return (
+              <button key={m.value || 'all'} role="tab" aria-selected={active} onClick={() => setMarket(m.value)}
+                className={`rounded-full border px-3 py-1 text-sm ${active ? 'border-brand-500 bg-brand-50 font-medium text-slate-900' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'}`}>
+                {m.label} <span className={`tabular-nums ${active ? 'text-slate-600' : 'text-slate-400'}`}>{m.n}</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {([
           ['Aktif lead', stats.open, 'open'],
@@ -235,7 +286,8 @@ export default function LeadGeneration() {
           <Search className="absolute top-2 left-2.5 h-4 w-4 text-slate-400" />
           <input className="input pl-8!" placeholder="Firma, kişi, şehir, sektör ara…" value={search} onChange={(e) => { setSearch(e.target.value); setLimit(PAGE) }} />
         </div>
-        <Select className="w-auto!" options={[{ value: 'none', label: 'Aramaya bağlı olmayanlar' }, ...searches.map((s) => ({ value: s.id, label: s.name }))]}
+        <Select className="w-auto!" options={[{ value: 'none', label: 'Aramaya bağlı olmayanlar' },
+          ...searches.filter((s) => !market || s.country_code === market).map((s) => ({ value: s.id, label: s.name }))]}
           placeholder="Tüm aramalar" value={searchId} onChange={setSearchId} />
         <Select className="w-auto!" options={VIEWS} value={view} onChange={(v) => { setView(v); setLimit(PAGE) }} />
         <Select className="w-auto!" options={LEAD_SOURCES} placeholder="Tüm kaynaklar" value={source} onChange={setSource} />
@@ -272,7 +324,7 @@ export default function LeadGeneration() {
                   <input type="checkbox" checked={allShownSelected} aria-label="Tümünü seç"
                     onChange={() => setSelected(allShownSelected ? new Set() : new Set(shown.map((r) => r.id)))} />
                 </th>
-                <th>Puan</th><th>Firma</th><th>Sektör</th><th>Konum</th><th>Yön / Mod</th><th>Arama / Kaynak</th><th>Durum</th><th>Son temas</th><th>Sonraki adım</th>
+                <th>Puan</th><th>Firma</th><th>Sektör</th><th>Konum</th>{!market && <th>Pazar</th>}<th>Yön / Mod</th><th>Arama / Kaynak</th><th>Durum</th><th>Son temas</th><th>Sonraki adım</th>
               </tr>
             </thead>
             <tbody>
@@ -289,6 +341,7 @@ export default function LeadGeneration() {
                   </td>
                   <td className="max-w-48 truncate text-slate-600" title={(l.sectors ?? []).join(', ')}>{(l.sectors ?? []).join(', ')}</td>
                   <td className="text-slate-600">{[l.city, l.country].filter(Boolean).join(', ')}</td>
+                  {!market && <td className="text-slate-600">{l.market ? marketName(l.market) : <span className="text-slate-400">-</span>}</td>}
                   <td className="whitespace-nowrap">
                     <div className="text-slate-700">{label(LEAD_DIRECTIONS, l.direction) || <span className="text-slate-400">-</span>}</div>
                     {(l.modes ?? []).length > 0 && (
@@ -321,7 +374,7 @@ export default function LeadGeneration() {
       </div>
       {data && rows.length > 0 && <p className="mt-2 text-xs text-slate-400">{rows.length} lead listeleniyor</p>}
 
-      {modal === 'new' && <LeadForm defaultSearchId={searchId && searchId !== 'none' ? searchId : null} onClose={() => setModal(null)} onSaved={(l) => nav(`/lead-generation/${l.id}`)} />}
+      {modal === 'new' && <LeadForm defaultSearchId={searchId && searchId !== 'none' ? searchId : null} defaultMarket={market && market !== 'none' ? market : null} onClose={() => setModal(null)} onSaved={(l) => nav(`/lead-generation/${l.id}`)} />}
       {modal === 'import' && (
         <LeadImport defaultSearchId={searchId && searchId !== 'none' ? searchId : null} onClose={() => setModal(null)} onDone={(n) => { setModal(null); setMsg(`${n} lead içe aktarıldı ve puanlandı.`); reload() }} />
       )}

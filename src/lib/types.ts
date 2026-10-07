@@ -18,6 +18,8 @@ export interface Company {
   tax_no: string | null
   eori: string | null
   source: string | null
+  /** Pazar: hangi ülke için çalışılıyor (ülke kodu) */
+  market: string | null
   tags: string[] | null
   notes: string | null
   created_at: string
@@ -281,6 +283,8 @@ export interface Lead {
   modes: string[] | null
   direction: string | null
   target_markets: string[] | null
+  /** Pazar: hangi ülke için çalışılıyor (ülke kodu). Boşsa eklenirken aramanın ülkesinden doldurulur. */
+  market: string | null
   est_volume: string | null
   status: string
   disqualify_reason: string | null

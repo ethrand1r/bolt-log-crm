@@ -56,7 +56,7 @@ export function CompanyForm({ company, defaultType = 'prospect', initialName, on
       const payload = clean({
         name: f.name, type: f.type, sectors: f.sectors ?? [], country: f.country, country_code: f.country_code, city: f.city,
         address: f.address, phones, emails, website: f.website, tax_office: f.tax_office, tax_no: f.tax_no, eori: f.eori,
-        source: f.source, notes: f.notes,
+        source: f.source, market: f.market ?? null, notes: f.notes,
       })
       const saved = company
         ? await q<Company>(supabase.from('companies').update(payload).eq('id', company.id).select().single())
@@ -75,6 +75,11 @@ export function CompanyForm({ company, defaultType = 'prospect', initialName, on
           </Field>
           <Field label="Tip"><Select options={COMPANY_TYPES} value={f.type} onChange={(v) => set('type', v)} /></Field>
           <Field label="Kaynak"><Select options={COMPANY_SOURCES} placeholder="-" value={f.source} onChange={(v) => set('source', v)} /></Field>
+          <div>
+            <span className="label">Pazar</span>
+            <CountryPicker value={f.market ?? null} placeholder="Hangi ülke için? (opsiyonel)" onChange={(code) => set('market', code)} />
+          </div>
+          <div className="hidden sm:block" />
           <div className="sm:col-span-2">
             <span className="label">Sektör / Ürün grubu</span>
             <SectorPicker value={f.sectors ?? []} onChange={(v) => set('sectors', v)} />

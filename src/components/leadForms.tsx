@@ -31,26 +31,27 @@ export function ToggleChips({ options, value, onChange }: { options: { value: st
 /** Lead araması seçimi. Arşivlenmiş aramalar sadece seçili değerse listelenir. */
 export function SearchSelect({ value, onChange, placeholder = 'Aramaya bağlı değil' }: {
   value: string | null | undefined
-  onChange: (id: string | null) => void
+  onChange: (id: string | null, search?: LeadSearch) => void
   placeholder?: string
 }) {
   const [list, setList] = useState<LeadSearch[]>([])
   useEffect(() => { getLeadSearches().then(setList).catch(() => {}) }, [])
   const options = list.filter((s) => s.status === 'active' || s.id === value).map((s) => ({ value: s.id, label: s.name }))
-  return <Select options={options} placeholder={placeholder} value={value} onChange={(v) => onChange(v || null)} />
+  return <Select options={options} placeholder={placeholder} value={value} onChange={(v) => onChange(v || null, list.find((s) => s.id === v))} />
 }
 
 // ------------------------------------------------------------------ Lead
-export function LeadForm({ lead, defaultSearchId, onClose, onSaved }: {
+export function LeadForm({ lead, defaultSearchId, defaultMarket, onClose, onSaved }: {
   lead?: Lead | null
   defaultSearchId?: string | null
+  defaultMarket?: string | null
   onClose: () => void
   onSaved: (l: Lead) => void
 }) {
   const [f, setF] = useState<Partial<Lead>>(
     lead ?? {
       country: 'Türkiye', country_code: 'TR', sectors: [], modes: [], target_markets: [], phones: [''], emails: [''], status: 'new', lead_type: 'customer',
-      search_id: defaultSearchId ?? null,
+      search_id: defaultSearchId ?? null, market: defaultMarket ?? null,
     },
   )
   const [dup, setDup] = useState<string | null>(null)
@@ -74,7 +75,7 @@ export function LeadForm({ lead, defaultSearchId, onClose, onSaved }: {
         phones: cleanList(f.phones), emails: cleanList(f.emails),
         contact_name: f.contact_name, contact_title: f.contact_title, contact_email: f.contact_email, contact_phone: f.contact_phone,
         source: f.source, source_detail: f.source_detail, exports: f.exports ?? null, employees: numOrNull(f.employees),
-        modes: f.modes ?? [], direction: f.direction, target_markets: f.target_markets ?? [], est_volume: f.est_volume,
+        modes: f.modes ?? [], direction: f.direction, target_markets: f.target_markets ?? [], market: f.market ?? null, est_volume: f.est_volume,
         status: f.status, disqualify_reason: f.status === 'disqualified' ? f.disqualify_reason : null,
         next_action_date: f.next_action_date, next_action_note: f.next_action_note, notes: f.notes, search_id: f.search_id ?? null, lead_type: f.lead_type ?? 'customer',
       })
@@ -102,10 +103,14 @@ export function LeadForm({ lead, defaultSearchId, onClose, onSaved }: {
             <input className="input" required autoFocus value={f.name ?? ''} onChange={(e) => set('name', e.target.value)} />
           </Field>
           <Field label="Lead araması" className="sm:col-span-2">
-            <SearchSelect value={f.search_id} onChange={(v) => set('search_id', v)} />
+            {/* Pazar boşsa aramanın ülkesi önerilir */}
+            <SearchSelect value={f.search_id} onChange={(v, s) => setF((p) => ({ ...p, search_id: v, market: p.market ?? s?.country_code ?? null }))} />
           </Field>
           <Field label="Lead türü"><Select options={LEAD_TYPES} value={f.lead_type ?? 'customer'} onChange={(v) => set('lead_type', v)} /></Field>
-          <div className="hidden sm:block" />
+          <div>
+            <span className="label">Pazar</span>
+            <CountryPicker value={f.market ?? null} placeholder="Hangi ülke için?" onChange={(code) => set('market', code)} />
+          </div>
           <Field label="Kaynak"><Select options={LEAD_SOURCES} placeholder="-" value={f.source} onChange={(v) => set('source', v)} /></Field>
           <Field label="Kaynak detayı">
             <input className="input" placeholder="ör. Texworld 2026, İTKİB üye listesi" value={f.source_detail ?? ''} onChange={(e) => set('source_detail', e.target.value)} />
